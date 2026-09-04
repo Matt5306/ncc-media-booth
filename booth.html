@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Team Booth</title>
+<style>
+  /*
+   * FAIR MODE - the kiosk shell for the ministry fair.
+   *
+   * BOOTH NOTES:
+   *  - Attract screen runs on its own. Any touch or key opens the station picker.
+   *  - Returns to attract after 60s idle so it resets itself between visitors.
+   *  - No server, no network. Every game is a plain file next to this one.
+   *  - Designed to be readable from a few feet away on a TV.
+   */
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --gold: #d29922;
+    --purple: #a371f7;
+    --pink: #f778ba;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); user-select: none;
+  }
+
+  .screen { display: none; height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ---------------- attract ---------------- */
+  #attract {
+    align-items: center; justify-content: center; text-align: center;
+    cursor: pointer; padding: 30px; gap: 26px; position: relative;
+  }
+  .kicker {
+    font-size: clamp(13px, 1.5vw, 17px); letter-spacing: 5px;
+    color: var(--accent); font-weight: 700;
+  }
+  .hero {
+    font-size: clamp(42px, 8.5vw, 118px); font-weight: 900;
+    line-height: .95; letter-spacing: -3px;
+  }
+  .hero span { color: var(--accent); }
+  .sub {
+    font-size: clamp(16px, 2.1vw, 26px); color: var(--text-dim);
+    max-width: 900px; line-height: 1.45;
+  }
+  .cta {
+    margin-top: 6px; font-size: clamp(18px, 2.4vw, 30px); font-weight: 800;
+    padding: 20px 52px; border-radius: 999px;
+    background: var(--accent); color: #04121f;
+    animation: bob 2.4s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+
+  /* Not a flex container: flex would treat the text node and the <b> as separate
+     items and collapse the space between them ("buttons.It might as well..."). */
+  .rotator {
+    min-height: 2.4em; font-size: clamp(15px, 1.9vw, 23px);
+    color: var(--text); line-height: 2.4; text-align: center;
+  }
+  .rotator b { color: var(--gold); }
+
+  .footnote {
+    position: absolute; bottom: 22px; font-size: 13px; color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  /* ---------------- picker ---------------- */
+  #picker { padding: 26px clamp(16px, 3vw, 46px) 22px; }
+  .bar {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+  }
+  .bar h1 { font-size: clamp(24px, 3.4vw, 42px); letter-spacing: -1px; }
+  .bar p { color: var(--text-dim); font-size: clamp(13px, 1.5vw, 18px); }
+  .back {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 11px 22px; border-radius: 8px; font-size: 15px; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+  }
+  .back:hover { border-color: var(--accent); }
+
+  .grid {
+    flex: 1; display: grid; gap: clamp(12px, 1.5vw, 20px); min-height: 0;
+    /* 230px lets all five stations sit in one row on a 1366-wide booth laptop,
+       which reads as "pick one of five" rather than leaving an orphan tile. */
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    align-content: start; overflow-y: auto; padding-bottom: 10px;
+  }
+
+  .tile {
+    background: var(--panel); border: 1px solid var(--border); border-left: 5px solid var(--c);
+    border-radius: 14px; padding: clamp(16px, 1.8vw, 26px);
+    display: flex; flex-direction: column; gap: 9px;
+    text-decoration: none; color: inherit; cursor: pointer;
+    transition: transform .13s, border-color .13s, background .13s;
+    min-height: 170px;
+  }
+  .tile:hover, .tile:focus-visible {
+    transform: translateY(-4px); background: var(--panel2); outline: none;
+  }
+  .tile .icon { font-size: clamp(28px, 3.4vw, 42px); line-height: 1; }
+  .tile h2 { font-size: clamp(17px, 1.9vw, 24px); }
+  .tile .role { font-size: 12px; letter-spacing: 1.6px; color: var(--c); font-weight: 800; }
+  .tile .desc { font-size: clamp(13px, 1.4vw, 16px); color: var(--text-dim); line-height: 1.45; flex: 1; }
+  .tile .go {
+    align-self: flex-start; font-weight: 800; font-size: 14px;
+    padding: 9px 20px; border-radius: 999px; background: var(--c); color: #06121d;
+  }
+
+  .tile.soon { cursor: default; opacity: .78; }
+  .tile.soon:hover { transform: none; background: var(--panel); }
+  .tile.soon .go { background: var(--panel2); color: var(--text-dim); border: 1px solid var(--border); }
+
+  .strip {
+    margin-top: 16px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 15px 22px; display: flex; gap: 20px;
+    align-items: center; justify-content: center; flex-wrap: wrap; text-align: center;
+  }
+  .strip b { color: var(--text); }
+  .strip span { color: var(--text-dim); font-size: clamp(13px, 1.5vw, 17px); }
+</style>
+</head>
+<body>
+
+<!-- ================= ATTRACT ================= -->
+<div class="screen active" id="attract">
+  <div class="kicker">NEW CREATION MEDIA TEAM</div>
+  <div class="hero">Can you run<br>a <span>Sunday?</span></div>
+  <div class="sub">
+    Every service takes a room full of people you never see.
+    Take any station for 60 seconds and find out if it is your thing.
+  </div>
+  <div class="rotator" id="rotator"></div>
+  <div class="cta">Touch anywhere to start</div>
+  <div class="footnote">NO EXPERIENCE NEEDED &middot; WE TRAIN YOU</div>
+</div>
+
+<!-- ================= PICKER ================= -->
+<div class="screen" id="picker">
+  <div class="bar">
+    <div>
+      <h1>Pick your station</h1>
+      <p>Each one is about a minute. There is no way to break anything.</p>
+    </div>
+    <button class="back" id="backBtn">&larr; Back</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="strip">
+    <span><b>Not sure?</b> Try House Sound &mdash; it is where most people start.</span>
+    <span>&middot;</span>
+    <span>Ask any of us what a <b>tally light</b> is. We love that question.</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var IDLE_MS = 60000;
+
+  // Every station on the team. `href` null = built but not yet wired up;
+  // the tile still does recruiting work by explaining the job.
+  var STATIONS = [
+    {
+      icon: '🎚️', name: 'House Sound', role: 'THE ROOM',
+      colour: 'var(--accent)',
+      desc: 'Mix what the people in the building hear. Catch feedback before it screams, keep the pastor above the band, ride the levels all service.',
+      href: 'mixing-games.html', tag: '4 games'
+    },
+    {
+      icon: '📡', name: 'Stream Sound', role: 'THE INTERNET',
+      colour: 'var(--green)',
+      desc: 'A completely separate mix for everyone watching online. The room can sound perfect while the stream sounds broken, and only you would know.',
+      href: 'streamsound-game.html', tag: 'Play now'
+    },
+    {
+      icon: '🎥', name: 'Camera', role: 'THE SHOT',
+      colour: 'var(--gold)',
+      desc: 'The director calls a shot in your headset. Find it, frame it, hold it steady. Headroom, thirds, and never a jerky move.',
+      href: 'camera-game.html', tag: 'Play now'
+    },
+    {
+      icon: '📖', name: 'ProPresenter', role: 'THE WORDS',
+      colour: 'var(--purple)',
+      desc: 'Lyrics and scripture on the big screen, on time, every time. Miss a slide and a whole room stops singing at once.',
+      href: 'propresenter-game.html', tag: 'Play now'
+    },
+    {
+      icon: '🏷️', name: 'Lower Thirds', role: 'THE NAMES',
+      colour: 'var(--pink)',
+      desc: 'The name bar across the bottom of the screen. Right name, right moment, spelled right, and down again before it overstays.',
+      href: 'lowerthirds-game.html', tag: 'Play now'
+    }
+  ];
+
+  var LINES = [
+    'Somebody has to press the buttons. <b>It might as well be you.</b>',
+    'The best seat in the house is <b>behind the camera</b>.',
+    'Nobody notices media <b>until it goes wrong</b>. Help us keep it right.',
+    'Four hours a month. <b>That is the whole ask.</b>',
+    'We will teach you everything. <b>You bring the willingness.</b>'
+  ];
+
+  function $(id) { return document.getElementById(id); }
+
+  // ---- build the tiles
+  var grid = $('grid');
+  STATIONS.forEach(function (s) {
+    var live = !!s.href;
+    var el = document.createElement(live ? 'a' : 'div');
+    el.className = 'tile' + (live ? '' : ' soon');
+    el.style.setProperty('--c', s.colour);
+    if (live) { el.href = s.href; }
+    el.innerHTML =
+      '<div class="icon">' + s.icon + '</div>' +
+      '<div class="role">' + s.role + '</div>' +
+      '<h2>' + s.name + '</h2>' +
+      '<div class="desc">' + s.desc + '</div>' +
+      '<div class="go">' + s.tag + '</div>';
+    grid.appendChild(el);
+  });
+
+  // ---- attract rotator
+  var ri = 0, rot = $('rotator');
+  function spin() {
+    rot.style.opacity = 0;
+    setTimeout(function () {
+      rot.innerHTML = LINES[ri % LINES.length];
+      ri++;
+      rot.style.transition = 'opacity .5s';
+      rot.style.opacity = 1;
+    }, 500);
+  }
+  spin();
+  setInterval(spin, 4600);
+
+  // ---- screens
+  function show(id) {
+    ['attract','picker'].forEach(function (s) {
+      $(s).classList.toggle('active', s === id);
+    });
+  }
+
+  var idle = null;
+  function armIdle() {
+    clearTimeout(idle);
+    idle = setTimeout(function () { show('attract'); }, IDLE_MS);
+  }
+
+  $('attract').addEventListener('click', function () { show('picker'); armIdle(); });
+  document.addEventListener('keydown', function () {
+    if ($('attract').classList.contains('active')) { show('picker'); }
+    armIdle();
+  });
+  $('backBtn').addEventListener('click', function (e) {
+    e.stopPropagation(); show('attract');
+  });
+  ['pointerdown','keydown','wheel'].forEach(function (e) {
+    document.addEventListener(e, armIdle, true);
+  });
+  armIdle();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stream Sound Training Game</title>
+<style>
+  /*
+   * Stream Sound station - "The Internet"
+   *
+   * The whole lesson: the stream is a SEPARATE MIX from the room. The building
+   * can sound perfect while the broadcast is broken, and the only person who
+   * would know is the one wearing the headphones. So the game never shows you
+   * the room - it shows you viewer comments, which is genuinely how a stream
+   * operator finds out something is wrong.
+   *
+   * Channel names come from the real Sanctuary board export: the stream send on
+   * channel 16 and the stream return on bus 9 are both real.
+   *
+   * BOOTH NOTES: no server, no network. Auto-returns to menu after 45s idle.
+   */
+  :root {
+    --bg:#0d1117; --panel:#161b22; --panel2:#21262d; --border:#30363d;
+    --text:#e6edf3; --text-dim:#8b949e; --accent:#58a6ff; --green:#3fb950;
+    --red:#f85149; --gold:#d29922;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:var(--bg); color:var(--text); overflow:hidden; user-select:none;
+  }
+  .topbar {
+    background:var(--panel); padding:12px 24px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .brand h1 { font-size:18px; }
+  .brand .sub { font-size:12px; color:var(--text-dim); }
+  .nav a { padding:8px 16px; border-radius:6px; color:var(--text-dim); text-decoration:none; font-size:14px; }
+  .nav a:hover { background:var(--panel2); color:var(--text); }
+
+  .btn {
+    padding:14px 30px; border-radius:8px; background:var(--panel2); color:var(--text);
+    border:1px solid var(--border); font-size:16px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .btn.primary { background:var(--green); border-color:var(--green); color:#04180a; }
+  .btn.big { padding:19px 44px; font-size:21px; }
+
+  .screen { display:none; height:calc(100vh - 57px); }
+  .screen.active { display:flex; }
+
+  /* ---------- menu ---------- */
+  #menu { flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:24px; text-align:center; }
+  #menu h2 { font-size:clamp(30px,5vw,52px); letter-spacing:-1.5px; }
+  #menu .lede { color:var(--text-dim); font-size:clamp(15px,1.9vw,21px); max-width:720px; line-height:1.5; }
+  .panels { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  .panels .arc-how { max-width:430px; }
+
+  /* ---------- game ---------- */
+  #game { flex-direction:column; padding:14px 20px 18px; gap:12px; }
+  .hud { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  .stat { font-size:13px; color:var(--text-dim); }
+  .stat b { color:var(--text); font-size:21px; font-variant-numeric:tabular-nums; }
+  .live {
+    display:flex; align-items:center; gap:8px; font-weight:800; font-size:13px;
+    letter-spacing:1.4px; padding:7px 14px; border-radius:6px;
+    background:#3d0f0f; border:1px solid var(--red); color:#fff;
+  }
+  .live .dot { width:11px; height:11px; border-radius:50%; background:var(--red); box-shadow:0 0 10px var(--red); }
+
+  .stage { flex:1; display:flex; gap:16px; min-height:0; }
+
+  /* viewer chat */
+  .chat {
+    width:330px; background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:9px; min-height:0;
+  }
+  .chat .label { font-size:11px; letter-spacing:1.5px; color:var(--text-dim); font-weight:800; }
+  .msgs { flex:1; overflow:hidden; display:flex; flex-direction:column; gap:8px; }
+  .msg {
+    background:var(--panel2); border-radius:9px; padding:9px 12px; font-size:14px; line-height:1.4;
+    border-left:3px solid var(--border); animation:slidein .3s ease-out;
+  }
+  .msg.active { border-left-color:var(--gold); background:#221d10; }
+  .msg .u { font-size:11px; color:var(--accent); font-weight:700; margin-bottom:2px; }
+  @keyframes slidein { from { opacity:0; transform:translateY(9px);} to {opacity:1; transform:none;} }
+
+  /* the stream mixer */
+  .desk {
+    flex:1; min-width:0; background:var(--panel); border:1px solid var(--border);
+    border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;
+  }
+  .desk .label { font-size:11px; letter-spacing:1.5px; color:var(--text-dim); font-weight:800; }
+  .strips { flex:1; display:flex; gap:10px; justify-content:space-around; align-items:stretch; min-height:0; }
+  .strip {
+    flex:1; max-width:110px; background:var(--bg); border:2px solid var(--border);
+    border-radius:9px; padding:10px 7px; display:flex; flex-direction:column;
+    align-items:center; gap:7px;
+  }
+  .strip.wanted { border-color:var(--gold); box-shadow:0 0 16px rgba(210,153,34,.32); }
+  .strip.solved { border-color:var(--green); }
+  .strip .nm { font-size:11px; color:var(--text-dim); text-align:center; line-height:1.25; min-height:2.4em; }
+  .meter {
+    flex:1; width:22px; background:var(--panel2); border-radius:4px; position:relative;
+    overflow:hidden; min-height:70px;
+  }
+  .meter .fill {
+    position:absolute; left:0; right:0; bottom:0;
+    background:linear-gradient(to top,var(--green),var(--green) 72%,var(--gold) 72%,var(--gold) 88%,var(--red) 88%);
+  }
+  .meter .zone {
+    position:absolute; left:-3px; right:-3px; background:rgba(210,153,34,.30);
+    border-top:2px solid var(--gold); border-bottom:2px solid var(--gold); display:none;
+  }
+  .strip.wanted .meter .zone { display:block; }
+  .fader { writing-mode:vertical-lr; direction:rtl; height:96px; width:100%; }
+  .db { font-size:11px; color:var(--accent); font-family:ui-monospace,monospace; }
+
+  .verdict {
+    text-align:center; font-size:14px; font-weight:800; letter-spacing:1px;
+    padding:9px; border-radius:8px; min-height:38px; color:#06121d; opacity:0; transition:opacity .2s;
+  }
+  .verdict.show { opacity:1; }
+  .hint { font-size:12px; color:var(--text-dim); text-align:center; line-height:1.5; }
+
+  /* ---------- results ---------- */
+  #results { flex-direction:column; align-items:center; justify-content:center; gap:15px; padding:24px; text-align:center; }
+  .grade { font-size:76px; font-weight:900; line-height:1; }
+  .breakdown { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px 26px; min-width:340px; }
+  .breakdown div { display:flex; justify-content:space-between; gap:28px; padding:5px 0; font-size:15px; }
+  .pitch { max-width:560px; color:var(--text-dim); font-size:16px; line-height:1.6; }
+  .pitch b { color:var(--text); }
+
+  @media (max-width:900px) {
+    .stage { flex-direction:column; }
+    .chat { width:100%; max-height:190px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>Stream Sound</h1>
+    <div class="sub">Media Team Training &middot; The Internet</div>
+  </div>
+  <div class="nav">
+    <a href="booth.html">Booth</a>
+    <a href="mixing-games.html">House Sound</a>
+    <a href="camera-game.html">Camera</a>
+  </div>
+</div>
+
+<!-- ============ MENU ============ -->
+<div class="screen active" id="menu">
+  <h2>Mix what the internet hears</h2>
+  <div class="lede">
+    The stream is its own mix, separate from the room. The building can sound perfect
+    while the broadcast is a mess &mdash; and the only person who would know is you,
+    sitting there in headphones. Viewers will tell you. Fix what they hear.
+  </div>
+  <div class="panels" id="panels"></div>
+  <button class="btn primary big" id="startBtn">Put the Headphones On</button>
+  <div class="hint">60 seconds &middot; Drag the faders</div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div class="screen" id="game">
+  <div class="hud">
+    <div class="live"><span class="dot"></span>LIVE</div>
+    <div class="stat">TIME <b id="timeLeft">60</b></div>
+    <div class="stat">SCORE <b id="score">0</b></div>
+    <div class="stat">FIXED <b id="fixed">0</b></div>
+    <div class="stat" style="flex:1;min-width:150px;color:var(--gold)" id="nowFixing">Waiting for comments&hellip;</div>
+  </div>
+
+  <div class="stage">
+    <div class="chat">
+      <div class="label">LIVE CHAT</div>
+      <div class="msgs" id="msgs"></div>
+    </div>
+
+    <div class="desk">
+      <div class="label">STREAM MIX &mdash; WHAT THE INTERNET HEARS</div>
+      <div class="strips" id="strips"></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="hint">The room is fine. Only this mix is yours to fix.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RESULTS ============ -->
+<div class="screen" id="results">
+  <div class="grade" id="grade">B</div>
+  <div id="resultLine" style="font-size:21px;color:var(--text-dim)"></div>
+  <div class="breakdown" id="breakdown"></div>
+  <div id="hiscore"></div>
+  <div class="pitch" id="pitch"></div>
+  <button class="btn primary big" id="againBtn">Go Again</button>
+</div>
+
+<script src="js/arcade.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var GAME_ID = 'streamsound';
+
+  // If arcade.js did not load, the leaderboard and how-to quietly disappear and
+  // the GAME STILL RUNS. A missing side feature must never take the booth down.
+  // Defensive merge, not a wholesale replacement. `window.Arcade` may be absent
+  // (script failed to load) OR present but stale from cache and missing newer
+  // members. Filling in per-function covers both, so a side feature can never
+  // take the game down with it.
+  var Arcade = window.Arcade || {};
+  ['howTo','boardHTML','initialsHTML'].forEach(function (k) {
+    if (typeof Arcade[k] !== 'function') Arcade[k] = function () { return ''; };
+  });
+  if (typeof Arcade.qualifies !== 'function') Arcade.qualifies = function () { return false; };
+  if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
+  if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
+  if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+
+  // Channel names lifted from the real Sanctuary board export.
+  var CHANNELS = [
+    { id:'pastor',  name:'Pastor' },
+    { id:'vox',     name:'Worship Vox' },
+    { id:'band',    name:'Band' },
+    { id:'cong',    name:'Congregation' },
+    { id:'media',   name:'Media / Playback' },
+    { id:'master',  name:'Stream Master' }
+  ];
+
+  // Real complaints, each mapping to one channel and a direction. These are the
+  // actual things people type in a church live chat.
+  var COMPLAINTS = [
+    { ch:'pastor', who:'@GloriaW',   text:'cant hear the preacher at all',            lo:62, hi:82, start:14 },
+    { ch:'media',  who:'@RRoberts',  text:'that video clip was DEAFENING online',     lo:28, hi:48, start:92 },
+    { ch:'band',   who:'@tinam',     text:'music is drowning out the singing',        lo:34, hi:54, start:90 },
+    { ch:'cong',   who:'@Deacon_Ray',text:'sounds empty, like nobody is in there',    lo:55, hi:75, start:10 },
+    { ch:'vox',    who:'@JLewis',    text:'the singers are buried, cant hear them',   lo:60, hi:80, start:18 },
+    { ch:'master', who:'@Momma_T',   text:'why is it so quiet on my end today',       lo:64, hi:84, start:24 },
+    { ch:'media',  who:'@kbrooks',   text:'the background track is way too hot',      lo:30, hi:50, start:88 },
+    { ch:'pastor', who:'@WatchingNC',text:'pastor keeps cutting in and out, too low', lo:60, hi:80, start:20 }
+  ];
+
+  var ROUND_SECONDS = 60;
+  var HOLD_MS       = 500;   // time inside the zone before it counts as fixed
+  var COMPLAINT_MS  = 15000; // before a viewer gives up on you
+
+  var st = null, raf = null, idle = null;
+
+  function $(id) { return document.getElementById(id); }
+  function show(id) {
+    ['menu','game','results'].forEach(function (s) {
+      $(s).classList.toggle('active', s === id);
+    });
+  }
+  function armIdle() {
+    clearTimeout(idle);
+    idle = setTimeout(function () {
+      if (!$('game').classList.contains('active')) show('menu');
+    }, 45000);
+  }
+  ['pointerdown','keydown'].forEach(function (e) {
+    document.addEventListener(e, armIdle, true);
+  });
+
+  // ---------------------------------------------------------------- desk
+  function buildStrips() {
+    var wrap = $('strips');
+    wrap.innerHTML = '';
+    CHANNELS.forEach(function (c) {
+      var d = document.createElement('div');
+      d.className = 'strip';
+      d.id = 'strip-' + c.id;
+      d.innerHTML =
+        '<div class="nm">' + c.name + '</div>' +
+        '<div class="meter"><div class="zone" id="zone-' + c.id + '"></div>' +
+        '<div class="fill" id="fill-' + c.id + '"></div></div>' +
+        '<input class="fader" type="range" min="0" max="100" value="70" id="fader-' + c.id + '">' +
+        '<div class="db" id="db-' + c.id + '">-6.0</div>';
+      wrap.appendChild(d);
+
+      d.querySelector('input').addEventListener('input', function (e) {
+        setLevel(c.id, parseInt(e.target.value, 10));
+      });
+    });
+  }
+
+  function setLevel(id, val) {
+    st.levels[id] = val;
+    $('fill-' + id).style.height = val + '%';
+    // Rough dB readout so the numbers feel like a real desk.
+    var db = (val === 0) ? '-inf' : ((val - 75) / 75 * 60).toFixed(1);
+    $('db-' + id).textContent = db;
+  }
+
+  function paintAll() {
+    CHANNELS.forEach(function (c) {
+      $('fader-' + c.id).value = st.levels[c.id];
+      setLevel(c.id, st.levels[c.id]);
+    });
+  }
+
+  function flash(text, colour) {
+    var v = $('verdict');
+    v.textContent = text;
+    v.style.background = colour;
+    v.classList.add('show');
+    clearTimeout(st.vTimer);
+    st.vTimer = setTimeout(function () { v.classList.remove('show'); }, 1400);
+  }
+
+  // ---------------------------------------------------------------- complaints
+  function newComplaint() {
+    var pool = COMPLAINTS.filter(function (c) { return c.text !== st.lastText; });
+    var c = pool[Math.floor(Math.random() * pool.length)];
+    st.lastText = c.text;
+    st.active = c;
+    st.holdFor = 0;
+    st.complaintElapsed = 0;
+    st.complaintStart = performance.now();
+
+    // Knock that channel out of place so there is something to fix.
+    st.levels[c.ch] = c.start;
+    paintAll();
+
+    // Show the zone on the affected strip.
+    CHANNELS.forEach(function (ch) {
+      $('strip-' + ch.id).classList.remove('wanted', 'solved');
+    });
+    var strip = $('strip-' + c.ch);
+    strip.classList.add('wanted');
+    var z = $('zone-' + c.ch);
+    z.style.bottom = c.lo + '%';
+    z.style.height = (c.hi - c.lo) + '%';
+
+    $('nowFixing').textContent = 'Fix: ' + chName(c.ch);
+
+    var m = document.createElement('div');
+    m.className = 'msg active';
+    m.innerHTML = '<div class="u">' + c.who + '</div>' + c.text;
+    $('msgs').insertBefore(m, $('msgs').firstChild);
+    while ($('msgs').children.length > 5) $('msgs').removeChild($('msgs').lastChild);
+  }
+
+  function chName(id) {
+    for (var i = 0; i < CHANNELS.length; i++) if (CHANNELS[i].id === id) return CHANNELS[i].name;
+    return id;
+  }
+
+  function resolve(good) {
+    var c = st.active;
+    st.active = null;
+    var strip = $('strip-' + c.ch);
+    strip.classList.remove('wanted');
+
+    if (good) {
+      st.fixed++;
+      var speed = Math.max(0, 1 - st.complaintElapsed / COMPLAINT_MS);
+      st.score += 80 + Math.round(70 * speed);
+      strip.classList.add('solved');
+      $('fixed').textContent = st.fixed;
+      $('score').textContent = st.score;
+      flash('THAT IS BETTER — THEY CAN HEAR IT NOW', 'var(--green)');
+    } else {
+      st.dropped++;
+      flash('THEY GAVE UP AND CLOSED THE STREAM', 'var(--red)');
+    }
+
+    $('nowFixing').textContent = 'Listening…';
+    setTimeout(function () {
+      if (st && st.running) newComplaint();
+    }, 1100);
+  }
+
+  // ---------------------------------------------------------------- loop
+  function tick(now) {
+    if (!st || !st.running) return;
+
+    // Real elapsed time, never a hardcoded frame length. Assuming 60fps breaks on
+    // a 144Hz screen (resolves far too fast) and on a throttled or backgrounded
+    // tab (never resolves at all). Capped so a stall cannot bank a free fix.
+    var dt = Math.min(100, now - st.lastFrame);
+    st.lastFrame = now;
+
+    if (st.active) {
+      var c = st.active;
+      var v = st.levels[c.ch];
+      if (v >= c.lo && v <= c.hi) {
+        st.holdFor += dt;
+        if (st.holdFor >= HOLD_MS) resolve(true);
+      } else {
+        st.holdFor = 0;
+      }
+      // Advance the patience timer on the SAME capped delta as the hold timer.
+      // Using wall-clock here would mean any stall (a backgrounded tab, a slow
+      // frame) runs the viewer out of patience while the player's progress
+      // toward a fix is frozen - they could only ever lose.
+      st.complaintElapsed += dt;
+      if (st.active && st.complaintElapsed > COMPLAINT_MS) resolve(false);
+    }
+
+    var left = ROUND_SECONDS - (now - st.roundStart) / 1000;
+    if (left <= 0) { finish(); return; }
+    $('timeLeft').textContent = Math.ceil(left);
+
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ---------------------------------------------------------------- start/end
+  function start() {
+    st = {
+      running:true, score:0, fixed:0, dropped:0,
+      levels:{}, active:null, lastText:null, holdFor:0,
+      roundStart:performance.now(), lastFrame:performance.now(),
+      complaintStart:0, complaintElapsed:0, vTimer:null
+    };
+    CHANNELS.forEach(function (c) { st.levels[c.id] = 70; });
+
+    $('score').textContent = '0';
+    $('fixed').textContent = '0';
+    $('timeLeft').textContent = ROUND_SECONDS;
+    $('msgs').innerHTML = '';
+    buildStrips();
+    paintAll();
+    show('game');
+    newComplaint();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function finish() {
+    st.running = false;
+    cancelAnimationFrame(raf);
+
+    var total = st.fixed + st.dropped;
+    var rate = st.fixed / Math.max(1, total);
+
+    var grade, colour, line;
+    if (rate > 0.8 && st.fixed >= 4) { grade='A'; colour='var(--green)';  line='Nobody watching had a bad service.'; }
+    else if (rate > 0.6)             { grade='B'; colour='var(--accent)'; line='Solid. You could run stream this Sunday.'; }
+    else if (rate > 0.35)            { grade='C'; colour='var(--gold)';   line='Getting there. Read the comment, find the channel.'; }
+    else                             { grade='D'; colour='var(--red)';    line='Rough run — but this is the simplest desk we have.'; }
+
+    $('grade').textContent = grade;
+    $('grade').style.color = colour;
+    $('resultLine').textContent = line;
+
+    $('breakdown').innerHTML =
+      row('Complaints fixed', st.fixed) +
+      row('Viewers lost', st.dropped) +
+      row('Score', st.score);
+
+    $('pitch').innerHTML =
+      'The thing to take away: <b>the room and the stream are two different mixes.</b> ' +
+      'Everything can sound perfect in the building while the broadcast is unlistenable, ' +
+      'and the only way anyone finds out is the person in the headphones — or the comments.' +
+      '<br><br>It is the simplest desk on the team, and the one people are most grateful for.';
+
+    var hs = $('hiscore');
+    if (Arcade.qualifies(GAME_ID, st.score)) {
+      hs.innerHTML = Arcade.initialsHTML();
+      Arcade.wireInitials(hs, function (initials) {
+        Arcade.submit(GAME_ID, initials, st.score);
+        hs.innerHTML = Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+        paintPanels();
+      });
+    } else {
+      hs.innerHTML = Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+    }
+
+    show('results');
+    armIdle();
+  }
+
+  function row(l, v) { return '<div><span>' + l + '</span><b>' + v + '</b></div>'; }
+
+  function paintPanels() {
+    $('panels').innerHTML =
+      Arcade.howTo({
+        title: 'HOW TO PLAY',
+        steps: [
+          'People watching online type <b>comments</b> when something sounds wrong.',
+          'The channel they are complaining about lights up <b>gold</b>, with a gold band on its meter.',
+          'Drag that fader until the level sits <b>inside the gold band</b> and hold it there.'
+        ],
+        controls: 'Drag the faders. Only the highlighted one needs fixing.'
+      }) +
+      Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+  }
+
+  $('startBtn').addEventListener('click', start);
+  $('againBtn').addEventListener('click', function () { paintPanels(); show('menu'); });
+
+  paintPanels();
+  armIdle();
+})();
+</script>
+</body>
+</html>

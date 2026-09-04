@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProPresenter Training Game</title>
+<style>
+  /*
+   * ProPresenter station - "The Words"
+   *
+   * The real skill is not pressing a button. It is pressing it a beat BEFORE the
+   * line is sung, so the words are already up when the room needs them. Late and
+   * the congregation stops singing; early and you have given away the next line.
+   * The scoring is built around that window.
+   *
+   * BOOTH NOTES: no server, no network. Auto-returns to the menu after 45s idle.
+   */
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #21262d; --border: #30363d;
+    --text: #e6edf3; --text-dim: #8b949e; --accent: #58a6ff; --purple: #a371f7;
+    --green: #3fb950; --red: #f85149; --gold: #d29922;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); overflow: hidden; user-select: none;
+  }
+  .topbar {
+    background: var(--panel); padding: 12px 24px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .brand h1 { font-size: 18px; }
+  .brand .sub { font-size: 12px; color: var(--text-dim); }
+  .nav a { padding: 8px 16px; border-radius: 6px; color: var(--text-dim); text-decoration: none; font-size: 14px; }
+  .nav a:hover { background: var(--panel2); color: var(--text); }
+
+  .btn {
+    padding: 14px 30px; border-radius: 8px; background: var(--panel2); color: var(--text);
+    border: 1px solid var(--border); font-size: 16px; font-weight: 700; cursor: pointer;
+    font-family: inherit;
+  }
+  .btn:hover { border-color: var(--purple); }
+  .btn.primary { background: var(--purple); border-color: var(--purple); color: #0b0616; }
+  .btn.big { padding: 19px 44px; font-size: 21px; }
+
+  .screen { display: none; height: calc(100vh - 57px); }
+  .screen.active { display: flex; }
+
+  /* ---------- menu ---------- */
+  #menu { flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px; text-align: center; }
+  #menu h2 { font-size: clamp(30px, 5vw, 52px); letter-spacing: -1.5px; }
+  #menu .lede { color: var(--text-dim); font-size: clamp(15px, 1.9vw, 21px); max-width: 680px; line-height: 1.5; }
+  .panels { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; align-items: stretch; }
+  .panels .arc-how { max-width: 420px; }
+  .songs { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  .song {
+    background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--purple);
+    border-radius: 12px; padding: 20px 24px; cursor: pointer; text-align: left;
+    min-width: 250px; max-width: 320px; transition: transform .12s, background .12s;
+  }
+  .song:hover { transform: translateY(-3px); background: var(--panel2); }
+  .song .kind { font-size: 11px; letter-spacing: 1.6px; color: var(--purple); font-weight: 800; }
+  .song h3 { font-size: 18px; margin: 5px 0 6px; }
+  .song p { font-size: 13px; color: var(--text-dim); line-height: 1.4; }
+
+  /* ---------- game ---------- */
+  #game { flex-direction: column; padding: 14px 20px 18px; gap: 12px; }
+  .hud { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .stat { font-size: 13px; color: var(--text-dim); }
+  .stat b { color: var(--text); font-size: 21px; font-variant-numeric: tabular-nums; }
+  .songname { flex: 1; min-width: 180px; font-size: 17px; font-weight: 700; color: var(--purple); }
+
+  .stage { flex: 1; display: flex; gap: 16px; min-height: 0; }
+
+  /* the big projection screen the congregation sees */
+  .projector {
+    flex: 1; min-width: 0; background: #05070a; border: 3px solid var(--border);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    padding: 30px; position: relative; overflow: hidden;
+  }
+  .projector.blank { background: #000; }
+  .lyric {
+    font-size: clamp(22px, 3.6vw, 46px); font-weight: 700; text-align: center;
+    line-height: 1.35; max-width: 90%;
+  }
+  .lyric.scripture { font-size: clamp(18px, 2.6vw, 34px); font-weight: 600; }
+  .logo { color: #1f2731; font-size: clamp(20px, 3vw, 40px); font-weight: 900; letter-spacing: 4px; }
+
+  .verdict {
+    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    font-size: 15px; font-weight: 800; letter-spacing: 1px; padding: 8px 20px;
+    border-radius: 999px; opacity: 0; transition: opacity .25s;
+  }
+  .verdict.show { opacity: 1; }
+
+  /* operator side panel - mirrors ProPresenter's preview pane */
+  .side { width: 300px; display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+  }
+  .card .label { font-size: 11px; letter-spacing: 1.5px; color: var(--text-dim); font-weight: 800; margin-bottom: 7px; }
+  .nextline { font-size: 16px; line-height: 1.35; min-height: 3em; color: var(--text); }
+  .nextline.end { color: var(--gold); font-weight: 700; }
+
+  .cue { height: 12px; background: var(--panel2); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .cue i { display: block; height: 100%; width: 0%; background: var(--purple); transition: background .15s; }
+  .cue i.ready { background: var(--green); }
+
+  .advance {
+    padding: 26px; font-size: 21px; font-weight: 900; letter-spacing: 1px;
+    background: var(--purple); color: #0b0616; border: none; border-radius: 12px;
+    cursor: pointer; font-family: inherit;
+  }
+  .advance:active { transform: scale(.98); }
+  .hint { font-size: 12px; color: var(--text-dim); text-align: center; line-height: 1.5; }
+
+  /* ---------- results ---------- */
+  #results { flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; }
+  .grade { font-size: 76px; font-weight: 900; line-height: 1; }
+  .breakdown { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px 26px; min-width: 330px; }
+  .breakdown div { display: flex; justify-content: space-between; gap: 28px; padding: 5px 0; font-size: 15px; }
+  .pitch { max-width: 560px; color: var(--text-dim); font-size: 16px; line-height: 1.6; }
+  .pitch b { color: var(--text); }
+
+  @media (max-width: 880px) {
+    .stage { flex-direction: column; }
+    .side { width: 100%; }
+    .advance { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>ProPresenter</h1>
+    <div class="sub">Media Team Training &middot; The Words</div>
+  </div>
+  <div class="nav">
+    <a href="booth.html">Booth</a>
+    <a href="camera-game.html">Camera</a>
+    <a href="mixing-games.html">Sound Games</a>
+  </div>
+</div>
+
+<!-- ============ MENU ============ -->
+<div class="screen active" id="menu">
+  <h2>Put the words up</h2>
+  <div class="lede">
+    Lyrics on the screen, on time, every time. Go late and the room stops singing.
+    Go early and you have given away the next line. Pick something to run.
+  </div>
+  <div class="panels" id="panels"></div>
+  <div class="songs" id="songList"></div>
+  <div class="hint">Pick a song above to start &middot; about 60 seconds</div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div class="screen" id="game">
+  <div class="hud">
+    <div class="songname" id="songName">&mdash;</div>
+    <div class="stat">SCORE <b id="score">0</b></div>
+    <div class="stat">PERFECT <b id="perfect">0</b></div>
+    <div class="stat">SLIDE <b id="slideNo">0</b></div>
+  </div>
+
+  <div class="stage">
+    <div class="projector" id="projector">
+      <div class="lyric" id="lyric"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <div class="label">NEXT SLIDE (PREVIEW)</div>
+        <div class="nextline" id="nextLine">&mdash;</div>
+      </div>
+      <div class="card">
+        <div class="label">WHEN TO ADVANCE</div>
+        <div class="cue"><i id="cueFill"></i></div>
+        <div class="hint" style="margin-top:8px">Fire it just as the bar fills &mdash; a beat <b>before</b> they sing it.</div>
+      </div>
+      <button class="advance" id="advanceBtn">NEXT SLIDE &nbsp;&raquo;</button>
+      <div class="hint">Spacebar works too.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RESULTS ============ -->
+<div class="screen" id="results">
+  <div class="grade" id="grade">B</div>
+  <div id="resultLine" style="font-size:21px;color:var(--text-dim)"></div>
+  <div class="breakdown" id="breakdown"></div>
+  <div id="hiscore"></div>
+  <div class="pitch" id="pitch"></div>
+  <button class="btn primary big" id="againBtn">Run Another</button>
+</div>
+
+<script src="js/arcade.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var GAME_ID = 'propresenter';
+
+  // If arcade.js did not load, the leaderboard and how-to quietly disappear and
+  // the GAME STILL RUNS. A missing side feature must never take the booth down.
+  // Defensive merge, not a wholesale replacement. `window.Arcade` may be absent
+  // (script failed to load) OR present but stale from cache and missing newer
+  // members. Filling in per-function covers both, so a side feature can never
+  // take the game down with it.
+  var Arcade = window.Arcade || {};
+  ['howTo','boardHTML','initialsHTML'].forEach(function (k) {
+    if (typeof Arcade[k] !== 'function') Arcade[k] = function () { return ''; };
+  });
+  if (typeof Arcade.qualifies !== 'function') Arcade.qualifies = function () { return false; };
+  if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
+  if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
+  if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+
+  // ---------------------------------------------------------------- content
+  // Real songs and scripture from New Creation. `gap` is how long the line is
+  // held before the next one is due, in milliseconds.
+  var SETS = [
+    {
+      title: 'Lord You Are Good',
+      kind: 'PRAISE',
+      blurb: 'Repetitive and fast. The trap is the repeats - lose your place and the room notices immediately.',
+      lines: [
+        ['Lord You are good', 2600],
+        ['And Your mercy endureth forever', 3000],
+        ['Lord You are good', 2500],
+        ['And Your mercy endureth forever', 3000],
+        ['People from every nation and tongue', 3100],
+        ['From generation to generation', 3000],
+        ['We worship You', 2400],
+        ['Hallelujah, hallelujah', 2600],
+        ['We worship You for who You are', 3200],
+        ['We worship You', 2400],
+        ['Hallelujah, hallelujah', 2600],
+        ['We worship You for who You are', 3200],
+        ['You are good', 2500]
+      ]
+    },
+    {
+      title: 'Oh How I Love Jesus',
+      kind: 'HYMN',
+      blurb: 'Steady hymn tempo. Easier timing, but the verse-to-chorus turn catches people out.',
+      lines: [
+        ['There is a name I love to hear', 3400],
+        ['I love to sing its worth', 3300],
+        ['It sounds like music in mine ear', 3400],
+        ['The sweetest name on earth', 3300],
+        ['Oh how I love Jesus', 3100],
+        ['Oh how I love Jesus', 3100],
+        ['Oh how I love Jesus', 3100],
+        ['Because He first loved me', 3400],
+        ['It tells me of a Saviour’s love', 3400],
+        ['Who died to set me free', 3300],
+        ['Oh how I love Jesus', 3100],
+        ['Because He first loved me', 3400]
+      ]
+    },
+    {
+      title: 'Revelation 19:1',
+      kind: 'SCRIPTURE',
+      blurb: 'Scripture slides are longer. Give people time to read - rushing is the mistake here.',
+      scripture: true,
+      lines: [
+        ['And after these things I heard a great voice of much people in heaven', 4200],
+        ['saying, Alleluia;', 3000],
+        ['Salvation, and glory, and honour, and power', 4000],
+        ['unto the Lord our God', 3600],
+        ['Alleluia!', 2800],
+        ['Alleluia!', 2800],
+        ['For the Lord God omnipotent reigneth', 4200]
+      ]
+    }
+  ];
+
+  // Timing windows, in ms relative to the moment the line is due.
+  // Deliberately generous. A stranger at a booth should feel competent inside
+  // thirty seconds - the job of the game is to teach that early beats late, not
+  // to punish someone for being a third of a second out. The DIRECTION stays
+  // honest (early is rewarded, late is penalised); only the tolerance is kind.
+  var PERFECT_EARLY = 1400;  // firing up to 1.4s early still counts as good
+  var PERFECT_LATE  = 450;
+  var OK_EARLY      = 2500;
+  var OK_LATE       = 1400;
+
+  // ---------------------------------------------------------------- state
+  var st = null, raf = null, idle = null;
+
+  function $(id) { return document.getElementById(id); }
+  function show(id) {
+    ['menu','game','results'].forEach(function (s) {
+      $(s).classList.toggle('active', s === id);
+    });
+  }
+
+  function armIdle() {
+    clearTimeout(idle);
+    idle = setTimeout(function () {
+      if (!$('game').classList.contains('active')) show('menu');
+    }, 45000);
+  }
+  ['pointerdown','keydown'].forEach(function (e) {
+    document.addEventListener(e, armIdle, true);
+  });
+
+  // ---------------------------------------------------------------- menu
+  function paintPanels() {
+    $('panels').innerHTML =
+      Arcade.howTo({
+        title: 'HOW TO PLAY',
+        steps: [
+          'The <b>right-hand panel</b> shows the next line of the song, before anyone sees it.',
+          'Watch the bar underneath it fill up. That is the singers getting to the end of the current line.',
+          'Hit <b>NEXT SLIDE</b> just as the bar goes green — a beat <b>before</b> they sing it.'
+        ],
+        controls: 'SPACEBAR or the big purple button. That is the whole game.'
+      }) +
+      Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+  }
+  paintPanels();
+
+  SETS.forEach(function (s, i) {
+    var el = document.createElement('div');
+    el.className = 'song';
+    el.innerHTML = '<div class="kind">' + s.kind + '</div><h3>' + s.title + '</h3><p>' + s.blurb + '</p>';
+    el.addEventListener('click', function () { start(i); });
+    $('songList').appendChild(el);
+  });
+
+  // ---------------------------------------------------------------- game
+  function start(i) {
+    var set = SETS[i];
+    st = {
+      set: set, idx: 0, score: 0, perfect: 0, ok: 0, early: 0, late: 0,
+      dueAt: performance.now() + 2600,   // a beat to settle before the first line
+      running: true, ended: false
+    };
+    $('songName').textContent = set.title;
+    $('score').textContent = '0';
+    $('perfect').textContent = '0';
+    $('slideNo').textContent = '0';
+    $('projector').classList.remove('blank');
+    $('lyric').className = 'lyric' + (set.scripture ? ' scripture' : '');
+    $('lyric').textContent = '';
+    $('lyric').innerHTML = '<span class="logo">NEW CREATION</span>';
+    $('nextLine').textContent = set.lines[0][0];
+    $('nextLine').className = 'nextline';
+    show('game');
+    raf = requestAnimationFrame(tick);
+  }
+
+  function tick(now) {
+    if (!st || !st.running) return;
+    var line = st.set.lines[st.idx];
+    var span = (st.idx === 0 ? 2600 : st.set.lines[st.idx - 1][1]);
+    var remaining = st.dueAt - now;
+    var pct = Math.max(0, Math.min(100, (1 - remaining / span) * 100));
+    var fill = $('cueFill');
+    fill.style.width = pct + '%';
+    fill.classList.toggle('ready', remaining <= PERFECT_EARLY);
+
+    // Missed it entirely - the room is already singing a line that is not up.
+    if (remaining < -OK_LATE) { judge(now, true); }
+
+    raf = requestAnimationFrame(tick);
+  }
+
+  function judge(now, missed) {
+    if (!st || st.ended) return;
+    var delta = st.dueAt - now;   // positive = early, negative = late
+    var pts = 0, label = '', colour = '';
+
+    if (missed) {
+      st.late++; label = 'TOO LATE'; colour = 'var(--red)'; pts = 0;
+    } else if (delta <= PERFECT_EARLY && delta >= -PERFECT_LATE) {
+      st.perfect++; label = 'PERFECT'; colour = 'var(--green)'; pts = 100;
+    } else if (delta > PERFECT_EARLY && delta <= OK_EARLY) {
+      st.early++; label = 'A BIT EARLY'; colour = 'var(--gold)'; pts = 45;
+    } else if (delta > OK_EARLY) {
+      st.early++; label = 'WAY TOO EARLY'; colour = 'var(--red)'; pts = 10;
+    } else if (delta < -PERFECT_LATE && delta >= -OK_LATE) {
+      st.late++; label = 'A BIT LATE'; colour = 'var(--gold)'; pts = 45;
+    } else {
+      st.late++; label = 'TOO LATE'; colour = 'var(--red)'; pts = 0;
+    }
+
+    st.score += pts;
+    $('score').textContent = st.score;
+    $('perfect').textContent = st.perfect;
+
+    var v = $('verdict');
+    v.textContent = label;
+    v.style.background = colour;
+    v.style.color = '#06121d';
+    v.classList.add('show');
+    clearTimeout(st.vTimer);
+    st.vTimer = setTimeout(function () { v.classList.remove('show'); }, 850);
+
+    advanceSlide(now);
+  }
+
+  function advanceSlide(now) {
+    var set = st.set;
+    var line = set.lines[st.idx];
+
+    // Put the line on the screen.
+    $('projector').classList.remove('blank');
+    $('lyric').textContent = line[0];
+    $('slideNo').textContent = (st.idx + 1);
+
+    st.idx++;
+
+    if (st.idx >= set.lines.length) {
+      // One last job: clear the screen when the song ends.
+      $('nextLine').textContent = 'End of song — clear the screen';
+      $('nextLine').className = 'nextline end';
+      st.dueAt = now + line[1];
+      st.ended = true;
+      setTimeout(finish, line[1] + 900);
+      return;
+    }
+
+    $('nextLine').textContent = set.lines[st.idx][0];
+    st.dueAt = now + line[1];
+  }
+
+  function press() {
+    if (!st || !st.running) return;
+    if (st.ended) { finish(); return; }
+    judge(performance.now(), false);
+  }
+
+  $('advanceBtn').addEventListener('click', press);
+  // Accept every way a browser might report the spacebar. Older engines and some
+  // on-screen keyboards report ' ', 'Spacebar', or only keyCode.
+  function isSpace(e) {
+    return e.code === 'Space' || e.key === ' ' || e.key === 'Spacebar' ||
+           e.keyCode === 32 || e.which === 32;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (isSpace(e)) {
+      e.preventDefault();
+      if ($('game').classList.contains('active')) press();
+    }
+  });
+
+  // ---------------------------------------------------------------- results
+  function finish() {
+    if (!st || !st.running) return;
+    st.running = false;
+    cancelAnimationFrame(raf);
+    $('projector').classList.add('blank');
+    $('lyric').innerHTML = '';
+
+    var total = st.perfect + st.early + st.late;
+    var n = Math.max(1, total);
+    var rate = st.perfect / n;
+
+    var grade, colour, line;
+    if (rate > 0.75)      { grade='A'; colour='var(--green)';  line='The room never had to wait on you.'; }
+    else if (rate > 0.55) { grade='B'; colour='var(--accent)'; line='Solid. You could run slides this Sunday.'; }
+    else if (rate > 0.35) { grade='C'; colour='var(--gold)';   line='Getting there. Timing is the whole job.'; }
+    else                  { grade='D'; colour='var(--red)';    line='Rough run - but this is the easiest station to learn.'; }
+
+    $('grade').textContent = grade;
+    $('grade').style.color = colour;
+    $('resultLine').textContent = line;
+
+    $('breakdown').innerHTML =
+      row('Slides run', total) +
+      row('Perfect timing', st.perfect) +
+      row('Too early', st.early) +
+      row('Too late', st.late) +
+      row('Score', st.score);
+
+    var tip = st.early > st.late
+      ? 'You were <b>ahead</b> of the song. Giving away the next line spoils it - wait for the bar to fill.'
+      : st.late > st.perfect
+        ? 'You were <b>behind</b> the song. When the words land late, people stop singing mid-line.'
+        : 'You found the pocket - <b>words up a beat before they are sung.</b>';
+
+    $('pitch').innerHTML = tip +
+      '<br><br>This is where most volunteers start. One Sunday shadowing, ' +
+      'one Sunday with someone next to you, and you are running it.';
+
+    // High score: offer initials entry, otherwise just show the board.
+    var hs = $('hiscore');
+    if (Arcade.qualifies(GAME_ID, st.score)) {
+      hs.innerHTML = Arcade.initialsHTML();
+      Arcade.wireInitials(hs, function (initials) {
+        Arcade.submit(GAME_ID, initials, st.score);
+        hs.innerHTML = Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+        paintPanels();
+      });
+    } else {
+      hs.innerHTML = Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+    }
+
+    show('results');
+    armIdle();
+  }
+
+  function row(l, v) { return '<div><span>' + l + '</span><b>' + v + '</b></div>'; }
+
+  $('againBtn').addEventListener('click', function () { paintPanels(); show('menu'); });
+  armIdle();
+})();
+</script>
+</body>
+</html>

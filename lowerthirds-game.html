@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lower Thirds Training Game</title>
+<style>
+  /*
+   * Lower Thirds station - "The Names"
+   *
+   * The real skill is not firing a graphic. It is firing the RIGHT one, leaving
+   * it up long enough to actually be read, and taking it down before it goes
+   * stale. New Creation's real name list contains two Statons and two
+   * Millenders, so "close enough" is genuinely wrong - that trap is the lesson,
+   * not a gimmick.
+   *
+   * BOOTH NOTES: no server, no network. Auto-returns to menu after 45s idle.
+   */
+  :root {
+    --bg:#0d1117; --panel:#161b22; --panel2:#21262d; --border:#30363d;
+    --text:#e6edf3; --text-dim:#8b949e; --accent:#58a6ff; --pink:#f778ba;
+    --green:#3fb950; --red:#f85149; --gold:#d29922;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:var(--bg); color:var(--text); overflow:hidden; user-select:none;
+  }
+  .topbar {
+    background:var(--panel); padding:12px 24px; border-bottom:1px solid var(--border);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .brand h1 { font-size:18px; }
+  .brand .sub { font-size:12px; color:var(--text-dim); }
+  .nav a { padding:8px 16px; border-radius:6px; color:var(--text-dim); text-decoration:none; font-size:14px; }
+  .nav a:hover { background:var(--panel2); color:var(--text); }
+
+  .btn {
+    padding:14px 30px; border-radius:8px; background:var(--panel2); color:var(--text);
+    border:1px solid var(--border); font-size:16px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .btn.primary { background:var(--pink); border-color:var(--pink); color:#2a0716; }
+  .btn.big { padding:19px 44px; font-size:21px; }
+
+  .screen { display:none; height:calc(100vh - 57px); }
+  .screen.active { display:flex; }
+
+  /* ---------- menu ---------- */
+  #menu { flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:24px; text-align:center; }
+  #menu h2 { font-size:clamp(30px,5vw,52px); letter-spacing:-1.5px; }
+  #menu .lede { color:var(--text-dim); font-size:clamp(15px,1.9vw,21px); max-width:700px; line-height:1.5; }
+  .panels { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+  .panels .arc-how { max-width:430px; }
+
+  /* ---------- game ---------- */
+  #game { flex-direction:column; padding:14px 20px 18px; gap:12px; }
+  .hud { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  .stat { font-size:13px; color:var(--text-dim); }
+  .stat b { color:var(--text); font-size:21px; font-variant-numeric:tabular-nums; }
+
+  .cue {
+    flex:1; min-width:240px; background:var(--panel); border:1px solid var(--border);
+    border-left:4px solid var(--pink); border-radius:8px; padding:9px 16px;
+  }
+  .cue .who { font-size:11px; letter-spacing:1.6px; color:var(--pink); font-weight:800; }
+  .cue .what { font-size:18px; font-weight:700; margin-top:2px; }
+
+  .stage { flex:1; display:flex; gap:16px; min-height:0; }
+
+  /* program monitor */
+  .program {
+    flex:1; min-width:0; border:3px solid var(--border); border-radius:12px;
+    position:relative; overflow:hidden; background:#070a0e;
+  }
+  .program.hot { border-color:var(--red); }
+  .program svg, .program #scenePhoto { position:absolute; inset:0; width:100%; height:100%; }
+  .program #scenePhoto { object-fit:cover; display:none; }
+
+  /* the lower third graphic itself */
+  .l3 {
+    position:absolute; left:5%; bottom:11%; min-width:44%; max-width:80%;
+    background:linear-gradient(90deg, rgba(20,24,33,.97), rgba(20,24,33,.80));
+    border-left:6px solid var(--pink); border-radius:3px; padding:13px 26px;
+    transform:translateX(-125%); transition:transform .42s cubic-bezier(.2,.8,.3,1);
+  }
+  .l3.up { transform:translateX(0); }
+  .l3 .n { font-size:clamp(17px,2.3vw,29px); font-weight:800; letter-spacing:.3px; }
+  .l3 .t { font-size:clamp(11px,1.3vw,15px); color:var(--pink); letter-spacing:2.4px; font-weight:700; margin-top:3px; text-transform:uppercase; }
+
+  .verdict {
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    font-size:14px; font-weight:800; letter-spacing:1px; padding:8px 20px;
+    border-radius:999px; opacity:0; transition:opacity .2s; white-space:nowrap;
+  }
+  .verdict.show { opacity:1; }
+
+  .ontime {
+    position:absolute; right:14px; top:14px; font-size:12px; font-weight:800;
+    letter-spacing:1.4px; padding:6px 13px; border-radius:6px;
+    background:rgba(0,0,0,.65); border:1px solid var(--border); color:var(--text-dim);
+  }
+  .ontime.good { color:var(--green); border-color:var(--green); }
+  .ontime.warn { color:var(--gold); border-color:var(--gold); }
+  .ontime.bad  { color:var(--red); border-color:var(--red); }
+
+  /* operator side */
+  .side { width:330px; display:flex; flex-direction:column; gap:10px; }
+  .side .label { font-size:11px; letter-spacing:1.5px; color:var(--text-dim); font-weight:800; }
+  .names { display:flex; flex-direction:column; gap:8px; }
+  .nameBtn {
+    text-align:left; padding:11px 15px; border-radius:9px; cursor:pointer;
+    background:var(--panel); border:1px solid var(--border); color:var(--text); font-family:inherit;
+  }
+  .nameBtn:hover:not(:disabled) { border-color:var(--pink); background:var(--panel2); }
+  .nameBtn:disabled { opacity:.35; cursor:default; }
+  .nameBtn .n { font-size:15px; font-weight:700; }
+  .nameBtn .t { font-size:11px; color:var(--text-dim); letter-spacing:1.4px; margin-top:2px; }
+
+  .takedown {
+    padding:20px; font-size:18px; font-weight:900; letter-spacing:1.4px;
+    background:var(--panel2); color:var(--text-dim); border:1px solid var(--border);
+    border-radius:10px; cursor:default; font-family:inherit;
+  }
+  .takedown.armed { background:var(--red); color:#fff; border-color:var(--red); cursor:pointer; }
+
+  .hint { font-size:12px; color:var(--text-dim); text-align:center; line-height:1.5; }
+
+  /* ---------- results ---------- */
+  #results { flex-direction:column; align-items:center; justify-content:center; gap:15px; padding:24px; text-align:center; }
+  .grade { font-size:76px; font-weight:900; line-height:1; }
+  .breakdown { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px 26px; min-width:340px; }
+  .breakdown div { display:flex; justify-content:space-between; gap:28px; padding:5px 0; font-size:15px; }
+  .pitch { max-width:560px; color:var(--text-dim); font-size:16px; line-height:1.6; }
+  .pitch b { color:var(--text); }
+
+  @media (max-width:900px) {
+    .stage { flex-direction:column; }
+    .side { width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>Lower Thirds</h1>
+    <div class="sub">Media Team Training &middot; The Names</div>
+  </div>
+  <div class="nav">
+    <a href="booth.html">Booth</a>
+    <a href="propresenter-game.html">ProPresenter</a>
+    <a href="camera-game.html">Camera</a>
+  </div>
+</div>
+
+<!-- ============ MENU ============ -->
+<div class="screen active" id="menu">
+  <h2>Get the name right</h2>
+  <div class="lede">
+    The name bar along the bottom of the screen. Right person, up long enough to read,
+    down before it goes stale. Get it wrong in front of the whole church and everybody sees.
+  </div>
+  <div class="panels" id="panels"></div>
+  <button class="btn primary big" id="startBtn">Take the Graphics Desk</button>
+  <div class="hint">60 seconds &middot; Click the name, then take it down</div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div class="screen" id="game">
+  <div class="hud">
+    <div class="stat">TIME <b id="timeLeft">60</b></div>
+    <div class="stat">SCORE <b id="score">0</b></div>
+    <div class="stat">CLEAN <b id="clean">0</b></div>
+    <div class="cue">
+      <div class="who">STAGE</div>
+      <div class="what" id="cueText">Stand by&hellip;</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="program" id="program">
+      <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" id="scene"></svg>
+      <img id="scenePhoto" alt="">
+      <div class="l3" id="l3">
+        <div class="n" id="l3name">&nbsp;</div>
+        <div class="t" id="l3title">&nbsp;</div>
+      </div>
+      <div class="ontime" id="ontime">OFF AIR</div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="side">
+      <div class="label">FIRE A NAME</div>
+      <div class="names" id="names"></div>
+      <button class="takedown" id="takedownBtn">TAKE IT DOWN</button>
+      <div class="hint">Read the whole name. There are two Statons and two Millenders.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RESULTS ============ -->
+<div class="screen" id="results">
+  <div class="grade" id="grade">B</div>
+  <div id="resultLine" style="font-size:21px;color:var(--text-dim)"></div>
+  <div class="breakdown" id="breakdown"></div>
+  <div id="hiscore"></div>
+  <div class="pitch" id="pitch"></div>
+  <button class="btn primary big" id="againBtn">Run It Again</button>
+</div>
+
+<script src="js/arcade.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var GAME_ID = 'lowerthirds';
+
+  // If arcade.js did not load, the leaderboard and how-to quietly disappear and
+  // the GAME STILL RUNS. A missing side feature must never take the booth down.
+  // Defensive merge, not a wholesale replacement. `window.Arcade` may be absent
+  // (script failed to load) OR present but stale from cache and missing newer
+  // members. Filling in per-function covers both, so a side feature can never
+  // take the game down with it.
+  var Arcade = window.Arcade || {};
+  ['howTo','boardHTML','initialsHTML'].forEach(function (k) {
+    if (typeof Arcade[k] !== 'function') Arcade[k] = function () { return ''; };
+  });
+  if (typeof Arcade.qualifies !== 'function') Arcade.qualifies = function () { return false; };
+  if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
+  if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
+  if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+
+  // Real New Creation names. Two Statons and two Millenders is not a contrivance -
+  // it is exactly the situation that catches operators out on a Sunday.
+  var PEOPLE = [
+    { name: 'Pastor Mark A. Staton II',  title: 'Speaker' },
+    { name: 'Elder Bryan Millender',     title: 'Speaker' },
+    { name: 'Minister Jocelyn Millender',title: 'Speaker' },
+    { name: 'Minister Jessica Staton',   title: 'Speaker' }
+  ];
+
+  var ROUND_SECONDS = 60;
+  var PICK_WINDOW   = 7000;   // ms to fire the right name before the moment passes
+  var TOO_QUICK     = 2200;   // down before this and nobody could read it
+  var IDEAL_MAX     = 8000;   // down after this and it has overstayed
+
+  var st = null, raf = null, idle = null;
+
+  function $(id) { return document.getElementById(id); }
+  function show(id) {
+    ['menu','game','results'].forEach(function (s) {
+      $(s).classList.toggle('active', s === id);
+    });
+  }
+  function armIdle() {
+    clearTimeout(idle);
+    idle = setTimeout(function () {
+      if (!$('game').classList.contains('active')) show('menu');
+    }, 45000);
+  }
+  ['pointerdown','keydown'].forEach(function (e) {
+    document.addEventListener(e, armIdle, true);
+  });
+
+  // ---------------------------------------------------------------- scene
+  function drawScene() {
+    $('scene').innerHTML =
+      '<defs>' +
+      '<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="#1a2231"/><stop offset="100%" stop-color="#0a0d13"/></linearGradient>' +
+      '<radialGradient id="key" cx="50%" cy="26%" r="42%">' +
+      '<stop offset="0%" stop-color="rgba(255,228,178,.34)"/>' +
+      '<stop offset="100%" stop-color="rgba(255,228,178,0)"/></radialGradient>' +
+      '</defs>' +
+      '<rect width="800" height="450" fill="url(#bg)"/>' +
+      '<rect width="800" height="450" fill="url(#key)"/>' +
+      '<rect x="150" y="30" width="170" height="215" fill="#141a24" stroke="#1f2733"/>' +
+      '<rect x="480" y="30" width="170" height="215" fill="#141a24" stroke="#1f2733"/>' +
+      '<rect x="0" y="300" width="800" height="150" fill="#0d1219"/>' +
+      '<rect x="0" y="296" width="800" height="5" fill="#1c2531"/>' +
+      '<rect x="366" y="236" width="68" height="64" rx="3" fill="#18202b" stroke="#25303e"/>' +
+      '<circle cx="400" cy="196" r="30" fill="#3d4b5e"/>' +
+      '<path d="M356 300 q44 -70 88 0 z" fill="#33404f"/>';
+  }
+
+  // ---------------------------------------------------------------- round
+  function newCue() {
+    var pool = PEOPLE.filter(function (p) { return !st.last || p.name !== st.last; });
+    var person = pool[Math.floor(Math.random() * pool.length)];
+    st.last = person.name;
+    st.target = person;
+    st.phase = 'pick';
+    st.phaseStart = performance.now();
+    $('cueText').textContent = person.name + ' is up now';
+    setNamesEnabled(true);
+    $('takedownBtn').classList.remove('armed');
+    setOnAir(false);
+  }
+
+  function setNamesEnabled(on) {
+    var btns = $('names').querySelectorAll('.nameBtn');
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = !on;
+  }
+
+  function setOnAir(on, label, cls) {
+    var o = $('ontime');
+    o.textContent = on ? (label || 'ON AIR') : 'OFF AIR';
+    o.className = 'ontime' + (cls ? ' ' + cls : '');
+    $('program').classList.toggle('hot', !!on);
+  }
+
+  function flash(text, colour) {
+    var v = $('verdict');
+    v.textContent = text;
+    v.style.background = colour;
+    v.style.color = '#06121d';
+    v.classList.add('show');
+    clearTimeout(st.vTimer);
+    st.vTimer = setTimeout(function () { v.classList.remove('show'); }, 1100);
+  }
+
+  function fire(person) {
+    if (!st || st.phase !== 'pick') return;
+    var elapsed = performance.now() - st.phaseStart;
+
+    if (person.name !== st.target.name) {
+      // Wrong name goes up on the screen, which is exactly what happens for real.
+      st.wrong++;
+      $('l3name').textContent = person.name;
+      $('l3title').textContent = person.title;
+      $('l3').classList.add('up');
+      setOnAir(true, 'WRONG NAME', 'bad');
+      flash('THAT IS THE WRONG PERSON', 'var(--red)');
+      setNamesEnabled(false);
+      st.phase = 'recover';
+      setTimeout(function () {
+        if (!st || !st.running) return;
+        $('l3').classList.remove('up');
+        setOnAir(false);
+        newCue();
+      }, 1700);
+      return;
+    }
+
+    // Right name.
+    st.up++;
+    $('l3name').textContent = person.name;
+    $('l3title').textContent = person.title;
+    $('l3').classList.add('up');
+    setNamesEnabled(false);
+    $('takedownBtn').classList.add('armed');
+    setOnAir(true, 'ON AIR', 'good');
+
+    var speedBonus = Math.max(0, 1 - elapsed / PICK_WINDOW);
+    st.score += 60 + Math.round(40 * speedBonus);
+    $('score').textContent = st.score;
+    flash('ON AIR', 'var(--green)');
+
+    st.phase = 'live';
+    st.phaseStart = performance.now();
+  }
+
+  function takedown() {
+    if (!st || st.phase !== 'live') return;
+    var held = performance.now() - st.phaseStart;
+    $('l3').classList.remove('up');
+    $('takedownBtn').classList.remove('armed');
+
+    if (held < TOO_QUICK) {
+      st.tooQuick++;
+      flash('TOO QUICK — NOBODY COULD READ IT', 'var(--gold)');
+    } else if (held <= IDEAL_MAX) {
+      st.clean++;
+      st.score += 100;
+      $('clean').textContent = st.clean;
+      flash('CLEAN', 'var(--green)');
+    } else {
+      st.overstay++;
+      flash('IT OVERSTAYED', 'var(--gold)');
+    }
+    $('score').textContent = st.score;
+
+    st.phase = 'gap';
+    setOnAir(false);
+    setTimeout(function () {
+      if (st && st.running) newCue();
+    }, 900);
+  }
+
+  // ---------------------------------------------------------------- loop
+  function tick(now) {
+    if (!st || !st.running) return;
+
+    if (st.phase === 'pick' && now - st.phaseStart > PICK_WINDOW) {
+      st.missed++;
+      flash('YOU MISSED THEM', 'var(--red)');
+      setNamesEnabled(false);
+      st.phase = 'gap';
+      setTimeout(function () { if (st && st.running) newCue(); }, 900);
+    }
+
+    if (st.phase === 'live') {
+      var held = now - st.phaseStart;
+      if (held < TOO_QUICK)      setOnAir(true, 'HOLD IT', 'warn');
+      else if (held <= IDEAL_MAX) setOnAir(true, 'TAKE IT DOWN', 'good');
+      else                        setOnAir(true, 'OVERSTAYED', 'bad');
+    }
+
+    var left = ROUND_SECONDS - (now - st.roundStart) / 1000;
+    if (left <= 0) { finish(); return; }
+    $('timeLeft').textContent = Math.ceil(left);
+
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ---------------------------------------------------------------- start/end
+  function build() {
+    var wrap = $('names');
+    wrap.innerHTML = '';
+    PEOPLE.forEach(function (p) {
+      var b = document.createElement('button');
+      b.className = 'nameBtn';
+      b.innerHTML = '<div class="n">' + p.name + '</div><div class="t">' + p.title + '</div>';
+      b.addEventListener('click', function () { fire(p); });
+      wrap.appendChild(b);
+    });
+  }
+
+  function start() {
+    st = {
+      running: true, score: 0, clean: 0, up: 0, wrong: 0,
+      missed: 0, overstay: 0, tooQuick: 0,
+      phase: 'gap', last: null, target: null,
+      roundStart: performance.now(), phaseStart: performance.now(), vTimer: null
+    };
+    $('score').textContent = '0';
+    $('clean').textContent = '0';
+    $('timeLeft').textContent = ROUND_SECONDS;
+    $('l3').classList.remove('up');
+    setOnAir(false);
+    show('game');
+    newCue();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function finish() {
+    st.running = false;
+    cancelAnimationFrame(raf);
+    $('l3').classList.remove('up');
+    setOnAir(false);
+
+    var attempts = st.clean + st.wrong + st.missed + st.overstay + st.tooQuick;
+    var n = Math.max(1, attempts);
+    var rate = st.clean / n;
+
+    var grade, colour, line;
+    if (st.wrong > 0 && rate < 0.5) { grade='D'; colour='var(--red)';    line='Wrong names went out. That is the one to avoid.'; }
+    else if (rate > 0.75)           { grade='A'; colour='var(--green)';  line='Every name right, every one readable.'; }
+    else if (rate > 0.55)           { grade='B'; colour='var(--accent)'; line='Solid. You could run graphics this Sunday.'; }
+    else if (rate > 0.35)           { grade='C'; colour='var(--gold)';   line='Getting there. Slow down and read the name.'; }
+    else                            { grade='D'; colour='var(--red)';    line='Rough run — but this one clicks fast.'; }
+
+    $('grade').textContent = grade;
+    $('grade').style.color = colour;
+    $('resultLine').textContent = line;
+
+    $('breakdown').innerHTML =
+      row('Clean graphics', st.clean) +
+      row('Wrong person', st.wrong) +
+      row('Missed entirely', st.missed) +
+      row('Left up too long', st.overstay) +
+      row('Pulled too fast', st.tooQuick) +
+      row('Score', st.score);
+
+    var tip;
+    if (st.wrong > 0) {
+      tip = 'You put <b>the wrong person’s name</b> on screen. Two Statons, two Millenders — read the whole name, not the first word.';
+    } else if (st.overstay > st.clean) {
+      tip = 'Your graphics <b>overstayed</b>. Five to eight seconds is plenty — after that it is just clutter.';
+    } else if (st.tooQuick > 0) {
+      tip = 'You pulled some <b>too fast</b>. If nobody can finish reading it, it may as well not have gone up.';
+    } else {
+      tip = 'You found the rhythm — <b>right name, up long enough to read, down before it goes stale.</b>';
+    }
+
+    $('pitch').innerHTML = tip +
+      '<br><br>This station is one screen and a handful of buttons. Most people have it by their second Sunday.';
+
+    var hs = $('hiscore');
+    if (Arcade.qualifies(GAME_ID, st.score)) {
+      hs.innerHTML = Arcade.initialsHTML();
+      Arcade.wireInitials(hs, function (initials) {
+        Arcade.submit(GAME_ID, initials, st.score);
+        hs.innerHTML = Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+        paintPanels();
+      });
+    } else {
+      hs.innerHTML = Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+    }
+
+    show('results');
+    armIdle();
+  }
+
+  function row(l, v) { return '<div><span>' + l + '</span><b>' + v + '</b></div>'; }
+
+  function paintPanels() {
+    $('panels').innerHTML =
+      Arcade.howTo({
+        title: 'HOW TO PLAY',
+        steps: [
+          'The <b>STAGE</b> line at the top tells you who is speaking right now.',
+          'Click that person in the name list. Their name bar slides onto the screen.',
+          'Leave it up a few seconds so people can read it, then hit <b>TAKE IT DOWN</b>.'
+        ],
+        controls: 'All clicking. Watch out — there are two Statons and two Millenders.'
+      }) +
+      Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+  }
+
+  $('takedownBtn').addEventListener('click', takedown);
+  $('startBtn').addEventListener('click', start);
+  $('againBtn').addEventListener('click', function () { paintPanels(); show('menu'); });
+
+  drawScene();
+  // A real photo of the stage replaces the drawn scene if one has been dropped
+  // into assets/. Missing file is not an error - the drawing simply stays.
+  Arcade.backdrop('assets/sanctuary-stage.jpg', function (url) {
+    if (!url) return;
+    var p = $('scenePhoto');
+    p.src = url;
+    p.style.display = 'block';
+    $('scene').style.display = 'none';
+  });
+  build();
+  paintPanels();
+  armIdle();
+})();
+</script>
+</body>
+</html>

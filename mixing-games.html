@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sound Engineer Training Games</title>
+  <style>
+    /*
+     * STYLE MATCHES THE ACTUAL TOOL
+     * So muscle memory transfers from games to real usage
+     */
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --panel2: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-dim: #8b949e;
+      --accent: #58a6ff;
+      --accent2: #7c3aed;
+      --green: #3fb950;
+      --red: #f85149;
+      --gold: #d29922;
+      --btn: #21262d;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* Header - matches tool topbar */
+    .topbar {
+      background: var(--panel);
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand h1 { font-size: 20px; }
+    .brand .sub { font-size: 12px; color: var(--text-dim); }
+    .nav { display: flex; gap: 8px; }
+    .nav a {
+      padding: 8px 16px;
+      border-radius: 6px;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .nav a:hover { background: var(--btn); color: var(--text); }
+    .nav a.active { background: var(--accent); color: #fff; }
+
+    /* Cards - matches tool cards */
+    .wrap { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card h2 { font-size: 16px; margin-bottom: 16px; color: var(--accent); }
+    .card h3 { font-size: 14px; margin: 16px 0 12px; }
+
+    /* Buttons - EXACT MATCH to tool */
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: var(--btn);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: var(--panel2); border-color: var(--accent); }
+    .btn.good { background: var(--green); border-color: var(--green); color: #000; }
+    .btn.danger { background: var(--red); border-color: var(--red); color: #fff; }
+    .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Form elements - EXACT MATCH to tool */
+    select, input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--accent); }
+    label { display: block; font-size: 13px; color: var(--text-dim); margin-top: 12px; }
+
+    /* Range slider - MATCHES tool faders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      margin: 8px 0;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: grab;
+    }
+    input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; }
+
+    /* Pills - matches tool status pills */
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      background: var(--panel2);
+    }
+    .pill.good { background: rgba(63, 185, 80, 0.2); color: var(--green); }
+    .pill.bad { background: rgba(248, 81, 73, 0.2); color: var(--red); }
+    .pill.warn { background: rgba(210, 153, 34, 0.2); color: var(--gold); }
+
+    /* Game-specific styles */
+    .game-hud {
+      display: flex;
+      justify-content: space-between;
+      background: var(--bg);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .hud-item { text-align: center; }
+    .hud-value { font-size: 24px; font-weight: bold; color: var(--accent); }
+    .hud-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
+
+    /* Fader strip - matches tool channel strip */
+    .fader-strip {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .fader-channel {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      width: 80px;
+      text-align: center;
+    }
+    .fader-channel.highlight { border-color: var(--gold); box-shadow: 0 0 10px rgba(210, 153, 34, 0.3); }
+    .fader-channel.correct { border-color: var(--green); }
+    .fader-channel.incorrect { border-color: var(--red); }
+    .fader-name { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+    .fader-meter {
+      height: 100px;
+      width: 20px;
+      background: var(--panel2);
+      border-radius: 4px;
+      margin: 0 auto 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .fader-meter-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, var(--green) 0%, var(--green) 70%, var(--gold) 70%, var(--gold) 85%, var(--red) 85%);
+      transition: height 0.1s;
+    }
+    .fader-meter-target {
+      position: absolute;
+      left: -2px;
+      right: -2px;
+      height: 3px;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+    }
+    .fader-slider {
+      writing-mode: vertical-lr;
+      direction: rtl;
+      height: 80px;
+      width: 100%;
+    }
+    .fader-db { font-size: 12px; color: var(--accent); font-family: monospace; }
+
+    /* EQ display - matches tool EQ section */
+    .eq-bands {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 8px;
+    }
+    .eq-band-btn {
+      padding: 16px 12px;
+      background: var(--panel2);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      min-width: 70px;
+    }
+    .eq-band-btn:hover { border-color: var(--accent); }
+    .eq-band-btn.feedback {
+      border-color: var(--red);
+      animation: feedbackPulse 0.3s infinite alternate;
+    }
+    .eq-band-btn.cut { border-color: var(--green); background: rgba(63, 185, 80, 0.1); }
+    @keyframes feedbackPulse {
+      from { box-shadow: 0 0 5px var(--red); }
+      to { box-shadow: 0 0 20px var(--red); }
+    }
+    .eq-freq { font-size: 14px; font-weight: bold; }
+    .eq-label { font-size: 10px; color: var(--text-dim); }
+
+    /* Mute buttons - matches tool mute controls */
+    .mute-btn {
+      padding: 12px 20px;
+      border-radius: 6px;
+      border: 2px solid var(--border);
+      background: var(--panel2);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .mute-btn.muted { background: var(--red); border-color: var(--red); }
+    .mute-btn.live { background: var(--green); border-color: var(--green); color: #000; }
+    .mute-btn.target { animation: pulse 1s infinite; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Timeline */
+    .timeline {
+      background: var(--bg);
+      border-radius: 8px;
+      height: 60px;
+      position: relative;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .timeline-progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      background: rgba(88, 166, 255, 0.2);
+      transition: width 0.1s linear;
+    }
+    .timeline-cue {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 40px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    .timeline-cue::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      white-space: nowrap;
+      color: var(--text-dim);
+    }
+    .timeline-playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+      z-index: 10;
+    }
+
+    /* Channel grid for cue game */
+    .channel-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .channel-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .channel-card.target { border-color: var(--gold); box-shadow: 0 0 10px rgba(210, 153, 34, 0.3); }
+    .channel-card.success { border-color: var(--green); }
+    .channel-card.miss { border-color: var(--red); }
+    .channel-icon { font-size: 24px; margin-bottom: 8px; }
+    .channel-name { font-weight: bold; margin-bottom: 8px; }
+
+    /* Overlay */
+    .game-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(13, 17, 23, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      z-index: 100;
+    }
+    .game-overlay.hidden { display: none; }
+    .overlay-title { font-size: 24px; color: var(--accent); margin-bottom: 16px; }
+    .overlay-score { font-size: 48px; color: var(--gold); margin: 16px 0; }
+    .overlay-instructions { color: var(--text-dim); max-width: 400px; text-align: center; line-height: 1.6; margin-bottom: 20px; }
+
+    /* How-to and high scores sit on the menu card now, so a visitor reads them
+       BEFORE committing - and one click then goes straight into play. */
+    .card-extras { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .card-extras .arc-how, .card-extras .arc-board { padding: 12px 14px; min-width: 0; }
+    .card-extras .arc-steps li { font-size: 13px; }
+    .card-extras .arc-name, .card-extras .arc-score { font-size: 15px; }
+    .play-now {
+      margin-top: 14px; text-align: center; font-weight: 900; letter-spacing: 2px;
+      background: var(--accent); color: #04121f; padding: 13px; border-radius: 8px; font-size: 15px;
+    }
+    .game-card:hover .play-now { filter: brightness(1.12); }
+
+    /* Game area */
+    .game-area {
+      background: var(--panel2);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      min-height: 300px;
+    }
+
+    /* Score display */
+    .high-scores {
+      display: flex;
+      gap: 20px;
+      margin-left: auto;
+    }
+    .score-box {
+      text-align: center;
+      padding: 8px 16px;
+      background: var(--panel2);
+      border-radius: 8px;
+    }
+    .score-box .score-value {
+      font-size: 20px;
+      color: var(--gold);
+      font-weight: bold;
+    }
+    .score-box .score-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    /* Game select grid */
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .game-card {
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .game-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .game-icon { font-size: 40px; margin-bottom: 12px; }
+    .game-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .game-desc { color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+    .game-skill {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 12px;
+      background: rgba(88, 166, 255, 0.1);
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--accent);
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 16px 0;
+    }
+    .small { font-size: 12px; color: var(--text-dim); }
+    .mt { margin-top: 12px; }
+    .mb { margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- Header - matches tool -->
+  <div class="topbar">
+    <div class="brand">
+      <h1>X32 Training Games</h1>
+      <div class="sub">Practice with controls that match the real tool</div>
+    </div>
+    <div class="nav" id="mainNav">
+      <a class="active" href="#" onclick="showMenu()">Games</a>
+      <a href="learning-hub.html">Learning Hub</a>
+      <a href="booth.html">Booth</a>
+    </div>
+    <div class="high-scores">
+      <div class="score-box">
+        <div class="score-value" id="totalBest">0</div>
+        <div class="score-label">Best Score</div>
+      </div>
+      <div class="score-box">
+        <div class="score-value" id="gamesPlayed">0</div>
+        <div class="score-label">Games</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- Game Selection Menu -->
+    <div id="gameMenu">
+      <h2 style="margin-bottom: 8px;">Choose a Training Game</h2>
+      <p class="small mb">These games use the same controls as the actual tool - practice here, apply skills there!</p>
+
+      <div class="game-grid">
+        <div class="card game-card" onclick="startGame('gain')">
+          <div class="game-icon">📊</div>
+          <div class="game-title">Gain Surfer</div>
+          <div class="game-desc">Keep the meter at -18dB using the fader slider. Same slider control as the real tool!</div>
+          <div class="game-skill">Trains: Fader Control</div>
+          <div class="card-extras" id="extras-gain"></div>
+          <div class="play-now">▶ PLAY</div>
+        </div>
+
+        <div class="card game-card" onclick="startGame('feedback')">
+          <div class="game-icon">🔊</div>
+          <div class="game-title">Feedback Dodger</div>
+          <div class="game-desc">Click the feedback frequency to cut it - just like using EQ Quick Fixes!</div>
+          <div class="game-skill">Trains: EQ Quick Fixes</div>
+          <div class="card-extras" id="extras-feedback"></div>
+          <div class="play-now">▶ PLAY</div>
+        </div>
+
+        <div class="card game-card" onclick="startGame('cue')">
+          <div class="game-icon">🎬</div>
+          <div class="game-title">Cue Runner</div>
+          <div class="game-desc">Mute/unmute channels at the right time using the same toggle buttons.</div>
+          <div class="game-skill">Trains: Channel Control</div>
+          <div class="card-extras" id="extras-cue"></div>
+          <div class="play-now">▶ PLAY</div>
+        </div>
+
+        <div class="card game-card" onclick="startGame('mix')">
+          <div class="game-icon">🎚️</div>
+          <div class="game-title">Mix Balancer</div>
+          <div class="game-desc">Match target levels using channel faders - same sliders as DCA control!</div>
+          <div class="game-skill">Trains: Mix Balance</div>
+          <div class="card-extras" id="extras-mix"></div>
+          <div class="play-now">▶ PLAY</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== GAIN SURFER GAME ==================== -->
+    <div id="gainGame" style="display:none;">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="margin:0;">Gain Surfer</h2>
+          <button class="btn" onclick="showMenu()">← Back</button>
+        </div>
+
+        <div class="game-hud">
+          <div class="hud-item">
+            <div class="hud-value" id="gainScore">0</div>
+            <div class="hud-label">Score</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="gainTime">60</div>
+            <div class="hud-label">Time</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="gainStreak">0</div>
+            <div class="hud-label">Streak</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="gainLives">❤️❤️❤️</div>
+            <div class="hud-label">Lives</div>
+          </div>
+        </div>
+
+        <div class="game-area" id="gainArea">
+          <div style="text-align:center;margin-bottom:16px;">
+            <span class="pill">Keep the meter in the <strong style="color:var(--accent);">-18dB zone</strong></span>
+          </div>
+
+          <!-- This mimics the tool's channel strip layout -->
+          <div class="fader-strip">
+            <div class="fader-channel" style="width:120px;">
+              <div class="fader-name">INPUT SIGNAL</div>
+              <div class="fader-meter" style="height:150px;">
+                <div class="fader-meter-fill" id="inputMeter" style="height:50%"></div>
+              </div>
+              <div class="fader-db" id="inputDb">-18 dB</div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 20px;">
+              <div style="font-size:24px;">→</div>
+              <div class="small">Your fader</div>
+            </div>
+
+            <div class="fader-channel" style="width:120px;">
+              <div class="fader-name">OUTPUT LEVEL</div>
+              <div class="fader-meter" style="height:150px;">
+                <div class="fader-meter-fill" id="outputMeter" style="height:50%"></div>
+                <div class="fader-meter-target" id="targetZone" style="bottom:60%;"></div>
+              </div>
+              <div class="fader-db" id="outputDb">-18 dB</div>
+              <div class="small" style="margin-top:4px;color:var(--accent);">Target: -18dB</div>
+            </div>
+          </div>
+
+          <!-- Fader control - SAME AS TOOL -->
+          <div style="max-width:300px;margin:24px auto 0;">
+            <label>Channel Fader</label>
+            <input type="range" id="gainFader" min="0" max="100" value="75"
+                   oninput="updateGainFader(this.value)">
+            <div style="display:flex;justify-content:space-between;" class="small">
+              <span>-∞</span>
+              <span>-10dB</span>
+              <span>0dB</span>
+              <span>+10dB</span>
+            </div>
+          </div>
+
+          <div class="game-overlay" id="gainOverlay">
+            <div class="overlay-title">GAIN SURFER</div>
+            <div class="overlay-instructions">
+              Keep the output level in the -18dB zone using the fader slider.<br><br>
+              <strong>This is the same slider used in the real tool!</strong><br>
+              The input level will vary - adjust to compensate.
+            </div>
+            <button class="btn active" onclick="startGainGame()">START GAME</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FEEDBACK DODGER GAME ==================== -->
+    <div id="feedbackGame" style="display:none;">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="margin:0;">Feedback Dodger</h2>
+          <button class="btn" onclick="showMenu()">← Back</button>
+        </div>
+
+        <div class="game-hud">
+          <div class="hud-item">
+            <div class="hud-value" id="fbScore">0</div>
+            <div class="hud-label">Score</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="fbLevel">1</div>
+            <div class="hud-label">Level</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="fbKills">0</div>
+            <div class="hud-label">Fixed</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="fbLives">❤️❤️❤️</div>
+            <div class="hud-label">Lives</div>
+          </div>
+        </div>
+
+        <div class="game-area" id="feedbackArea">
+          <div style="text-align:center;margin-bottom:16px;">
+            <span class="pill warn">Click the glowing frequency to cut it!</span>
+          </div>
+
+          <!-- EQ bands - mimics tool's EQ quick fix selection -->
+          <div class="eq-bands" id="eqBands">
+            <div class="eq-band-btn" data-band="0" onclick="cutFeedback(0)">
+              <div class="eq-freq">125Hz</div>
+              <div class="eq-label">Low</div>
+            </div>
+            <div class="eq-band-btn" data-band="1" onclick="cutFeedback(1)">
+              <div class="eq-freq">250Hz</div>
+              <div class="eq-label">Low-Mid</div>
+            </div>
+            <div class="eq-band-btn" data-band="2" onclick="cutFeedback(2)">
+              <div class="eq-freq">500Hz</div>
+              <div class="eq-label">Mid</div>
+            </div>
+            <div class="eq-band-btn" data-band="3" onclick="cutFeedback(3)">
+              <div class="eq-freq">1kHz</div>
+              <div class="eq-label">Mid</div>
+            </div>
+            <div class="eq-band-btn" data-band="4" onclick="cutFeedback(4)">
+              <div class="eq-freq">2kHz</div>
+              <div class="eq-label">Hi-Mid</div>
+            </div>
+            <div class="eq-band-btn" data-band="5" onclick="cutFeedback(5)">
+              <div class="eq-freq">4kHz</div>
+              <div class="eq-label">Presence</div>
+            </div>
+            <div class="eq-band-btn" data-band="6" onclick="cutFeedback(6)">
+              <div class="eq-freq">8kHz</div>
+              <div class="eq-label">High</div>
+            </div>
+          </div>
+
+          <div class="small" style="text-align:center;margin-top:16px;">
+            In the real tool: <strong>Feedback tab → Quick Fixes → Select problem type → Apply</strong>
+          </div>
+
+          <div class="game-overlay" id="feedbackOverlay">
+            <div class="overlay-title">FEEDBACK DODGER</div>
+            <div class="overlay-instructions">
+              Frequencies will start feeding back (red glow).<br>
+              Click on them quickly to apply an EQ cut!<br><br>
+              <strong>This trains your frequency recognition</strong> for using EQ Quick Fixes in the real tool.
+            </div>
+            <button class="btn active" onclick="startFeedbackGame()">START GAME</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CUE RUNNER GAME ==================== -->
+    <div id="cueGame" style="display:none;">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="margin:0;">Cue Runner</h2>
+          <button class="btn" onclick="showMenu()">← Back</button>
+        </div>
+
+        <div class="game-hud">
+          <div class="hud-item">
+            <div class="hud-value" id="cueScore">0</div>
+            <div class="hud-label">Score</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="cuePerfect">0</div>
+            <div class="hud-label">Perfect</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="cueMissed">0</div>
+            <div class="hud-label">Missed</div>
+          </div>
+        </div>
+
+        <div class="game-area" id="cueArea">
+          <div class="timeline" id="cueTimeline">
+            <div class="timeline-progress" id="cueProgress" style="width:0%"></div>
+            <div class="timeline-playhead" id="cuePlayhead" style="left:0%"></div>
+            <!-- Cue markers added by JS -->
+          </div>
+
+          <!-- Channel controls - SAME BUTTONS AS TOOL -->
+          <div class="channel-grid" id="cueChannels">
+            <div class="channel-card" id="cueCh0">
+              <div class="channel-icon">🎤</div>
+              <div class="channel-name">Pastor</div>
+              <button class="mute-btn muted" id="cueBtn0" onclick="toggleCueChannel(0)">MUTED</button>
+            </div>
+            <div class="channel-card" id="cueCh1">
+              <div class="channel-icon">🎸</div>
+              <div class="channel-name">Band</div>
+              <button class="mute-btn muted" id="cueBtn1" onclick="toggleCueChannel(1)">MUTED</button>
+            </div>
+            <div class="channel-card" id="cueCh2">
+              <div class="channel-icon">🎹</div>
+              <div class="channel-name">Keys</div>
+              <button class="mute-btn muted" id="cueBtn2" onclick="toggleCueChannel(2)">MUTED</button>
+            </div>
+            <div class="channel-card" id="cueCh3">
+              <div class="channel-icon">📺</div>
+              <div class="channel-name">Video</div>
+              <button class="mute-btn muted" id="cueBtn3" onclick="toggleCueChannel(3)">MUTED</button>
+            </div>
+          </div>
+
+          <div class="small" style="text-align:center;margin-top:16px;">
+            These mute buttons work just like channel mutes in the real tool!
+          </div>
+
+          <div class="game-overlay" id="cueOverlay">
+            <div class="overlay-title">CUE RUNNER</div>
+            <div class="overlay-instructions">
+              Watch the timeline - when it reaches a cue, toggle the right channel!<br><br>
+              <strong>Mute buttons match the real tool.</strong><br>
+              Perfect timing = bonus points!
+            </div>
+            <button class="btn active" onclick="startCueGame()">START GAME</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== MIX BALANCER GAME ==================== -->
+    <div id="mixGame" style="display:none;">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h2 style="margin:0;">Mix Balancer</h2>
+          <button class="btn" onclick="showMenu()">← Back</button>
+        </div>
+
+        <div class="game-hud">
+          <div class="hud-item">
+            <div class="hud-value" id="mixScore">0</div>
+            <div class="hud-label">Score</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="mixTime">60</div>
+            <div class="hud-label">Time</div>
+          </div>
+          <div class="hud-item">
+            <div class="hud-value" id="mixAccuracy">100%</div>
+            <div class="hud-label">Accuracy</div>
+          </div>
+        </div>
+
+        <div class="game-area" id="mixArea">
+          <div style="text-align:center;margin-bottom:16px;">
+            <span class="pill">Match each meter to the target line using the faders</span>
+          </div>
+
+          <!-- Channel faders - SAME LAYOUT AS TOOL DCA CONTROL -->
+          <div class="fader-strip" id="mixFaders">
+            <!-- Channels added by JS -->
+          </div>
+
+          <div class="small" style="text-align:center;margin-top:16px;">
+            These faders work exactly like DCA Control in the real tool!
+          </div>
+
+          <div class="game-overlay" id="mixOverlay">
+            <div class="overlay-title">MIX BALANCER</div>
+            <div class="overlay-instructions">
+              Adjust each fader to match the target line on its meter.<br>
+              Audio levels keep changing - stay balanced!<br><br>
+              <strong>Same fader sliders as the tool's DCA Control.</strong>
+            </div>
+            <button class="btn active" onclick="startMixGame()">START GAME</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/arcade.js"></script>
+  <script>
+    // ========================================
+    // STATE
+    // ========================================
+    let gameState = {
+      highScores: { gain: 0, feedback: 0, cue: 0, mix: 0 },
+      gamesPlayed: 0
+    };
+
+    function loadState() {
+      const saved = localStorage.getItem('x32TrainingGames');
+      if (saved) gameState = JSON.parse(saved);
+      updateScoreDisplay();
+    }
+
+    function saveState() {
+      localStorage.setItem('x32TrainingGames', JSON.stringify(gameState));
+      updateScoreDisplay();
+    }
+
+    function updateScoreDisplay() {
+      const best = Math.max(...Object.values(gameState.highScores));
+      document.getElementById('totalBest').textContent = best;
+      document.getElementById('gamesPlayed').textContent = gameState.gamesPlayed;
+    }
+
+    // ========================================
+    // NAVIGATION
+    // ========================================
+    function showMenu() {
+      ['gainGame', 'feedbackGame', 'cueGame', 'mixGame'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+      document.getElementById('gameMenu').style.display = 'block';
+      // Stop any running games
+      if (window.gameInterval) clearInterval(window.gameInterval);
+      if (window.gameTimer) clearInterval(window.gameTimer);
+      if (typeof paintCardExtras === 'function') paintCardExtras();
+    }
+
+    // If arcade.js is missing the how-to and leaderboard quietly vanish and the
+    // games still run. A side feature must never take the booth down.
+  // Defensive merge, not a wholesale replacement. `window.Arcade` may be absent
+  // (script failed to load) OR present but stale from cache and missing newer
+  // members. Filling in per-function covers both, so a side feature can never
+  // take the game down with it.
+  var Arcade = window.Arcade || {};
+  ['howTo','boardHTML','initialsHTML'].forEach(function (k) {
+    if (typeof Arcade[k] !== 'function') Arcade[k] = function () { return ''; };
+  });
+  if (typeof Arcade.qualifies !== 'function') Arcade.qualifies = function () { return false; };
+  if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
+  if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
+  if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+
+    const HOWTO = {
+      gain: {
+        steps: [
+          'The <b>OUTPUT LEVEL</b> meter drifts on its own, the way a real singer does.',
+          'Drag the <b>Channel Fader</b> to hold that meter in the <b>-18dB</b> zone.',
+          'Drift out of the zone and you lose a heart. Three hearts and the round ends.'
+        ],
+        controls: 'Drag the slider. That is the only control.'
+      },
+      feedback: {
+        steps: [
+          'A frequency starts to ring — one of the buttons will <b>glow</b>.',
+          'Click that glowing frequency to <b>cut it</b> before it howls.',
+          'Miss it and you lose a heart. It speeds up as you go.'
+        ],
+        controls: 'Click the glowing frequency button.'
+      },
+      cue: {
+        steps: [
+          'You are running mutes for a service. Four channels, all muted to start.',
+          'When a channel is <b>called</b>, click its button to bring it LIVE.',
+          'Good timing scores more. Being early or late costs you.'
+        ],
+        controls: 'Click the MUTED / LIVE buttons.'
+      },
+      mix: {
+        steps: [
+          'Six instruments, each with a <b>target line</b> to hit.',
+          'Move each fader until the meter matches its target.',
+          'The label tells you which way to go — Higher, Lower, or Good.'
+        ],
+        controls: 'Drag the six faders.'
+      }
+    };
+
+    function paintCardExtras() {
+      Object.keys(HOWTO).forEach(function (g) {
+        const el = document.getElementById('extras-' + g);
+        if (!el) return;
+        el.innerHTML =
+          Arcade.howTo({ title: 'HOW TO PLAY', steps: HOWTO[g].steps, controls: HOWTO[g].controls }) +
+          Arcade.boardHTML('sound-' + g, 'HIGH SCORES');
+      });
+    }
+
+    // One click straight into play. The instructions live on the menu card now,
+    // so there is no second "START GAME" button to hunt for.
+    const STARTERS = {
+      gain: () => startGainGame(),
+      feedback: () => startFeedbackGame(),
+      cue: () => startCueGame(),
+      mix: () => startMixGame()
+    };
+
+    function startGame(game) {
+      document.getElementById('gameMenu').style.display = 'none';
+      document.getElementById(game + 'Game').style.display = 'block';
+      const go = STARTERS[game];
+      if (go) go();
+    }
+
+    // Shared game-over furniture: offer initials on a high score, else the board.
+    function arcadeFinish(gameId, score, overlayEl, replayFn) {
+      const holder = document.createElement('div');
+      holder.style.marginTop = '18px';
+      overlayEl.appendChild(holder);
+      if (Arcade.qualifies(gameId, score)) {
+        holder.innerHTML = Arcade.initialsHTML();
+        Arcade.wireInitials(holder, function (initials) {
+          Arcade.submit(gameId, initials, score);
+          holder.innerHTML = Arcade.boardHTML(gameId, 'HIGH SCORES');
+          paintCardExtras();
+        });
+      } else {
+        holder.innerHTML = Arcade.boardHTML(gameId, 'HIGH SCORES');
+      }
+    }
+
+    // ========================================
+    // GAIN SURFER
+    // ========================================
+    let gain = { score: 0, time: 60, streak: 0, lives: 3, fader: 75, input: 50, running: false };
+
+    function updateGainFader(val) {
+      gain.fader = parseInt(val);
+    }
+
+    function startGainGame() {
+      gain = { score: 0, time: 60, streak: 0, lives: 3, fader: 75, input: 50, running: true };
+      document.getElementById('gainOverlay').classList.add('hidden');
+      document.getElementById('gainFader').value = 75;
+      updateGainHUD();
+
+      window.gameInterval = setInterval(() => {
+        if (!gain.running) return;
+
+        // Vary input randomly
+        gain.input += (Math.random() - 0.5) * 8;
+        gain.input = Math.max(20, Math.min(80, gain.input));
+
+        // Calculate output
+        const output = (gain.input / 100) * (gain.fader / 75);
+        const outputPercent = Math.min(100, Math.max(0, output * 100));
+
+        // Update meters
+        document.getElementById('inputMeter').style.height = gain.input + '%';
+        document.getElementById('outputMeter').style.height = outputPercent + '%';
+        document.getElementById('inputDb').textContent = Math.round(-40 + gain.input * 0.5) + ' dB';
+        document.getElementById('outputDb').textContent = Math.round(-40 + outputPercent * 0.5) + ' dB';
+
+        // Check if in zone (55-65% = around -18dB)
+        const inZone = outputPercent >= 55 && outputPercent <= 65;
+
+        if (inZone) {
+          gain.streak++;
+          gain.score += 1 + Math.floor(gain.streak / 5);
+          document.getElementById('outputMeter').parentElement.style.borderColor = 'var(--green)';
+        } else {
+          if (gain.streak > 3) {
+            gain.lives--;
+            updateGainLives();
+            if (gain.lives <= 0) endGainGame();
+          }
+          gain.streak = 0;
+          document.getElementById('outputMeter').parentElement.style.borderColor = 'var(--red)';
+        }
+
+        updateGainHUD();
+      }, 100);
+
+      window.gameTimer = setInterval(() => {
+        gain.time--;
+        document.getElementById('gainTime').textContent = gain.time;
+        if (gain.time <= 0) endGainGame();
+      }, 1000);
+    }
+
+    function updateGainHUD() {
+      document.getElementById('gainScore').textContent = gain.score;
+      document.getElementById('gainStreak').textContent = gain.streak;
+    }
+
+    function updateGainLives() {
+      const hearts = '❤️'.repeat(gain.lives) + '🖤'.repeat(3 - gain.lives);
+      document.getElementById('gainLives').textContent = hearts;
+    }
+
+    function endGainGame() {
+      gain.running = false;
+      clearInterval(window.gameInterval);
+      clearInterval(window.gameTimer);
+
+      gameState.gamesPlayed++;
+      if (gain.score > gameState.highScores.gain) {
+        gameState.highScores.gain = gain.score;
+      }
+      saveState();
+
+      const overlay = document.getElementById('gainOverlay');
+      overlay.innerHTML = `
+        <div class="overlay-title">GAME OVER</div>
+        <div class="overlay-score">${gain.score}</div>
+        <div style="color:var(--text-dim)">Best Streak: ${gain.streak}</div>
+        <div style="margin-top:20px;display:flex;gap:12px;">
+          <button class="btn active" onclick="startGainGame()">Play Again</button>
+          <button class="btn" onclick="showMenu()">Back to Menu</button>
+        </div>
+      `;
+      overlay.classList.remove('hidden');
+      arcadeFinish('sound-gain', gain.score, overlay, null);
+    }
+
+    // ========================================
+    // FEEDBACK DODGER
+    // ========================================
+    let fb = { score: 0, level: 1, kills: 0, lives: 3, active: null, running: false };
+    const fbFreqs = ['125Hz', '250Hz', '500Hz', '1kHz', '2kHz', '4kHz', '8kHz'];
+
+    function startFeedbackGame() {
+      fb = { score: 0, level: 1, kills: 0, lives: 3, active: null, running: true };
+      document.getElementById('feedbackOverlay').classList.add('hidden');
+
+      // Reset all bands
+      document.querySelectorAll('.eq-band-btn').forEach(btn => {
+        btn.classList.remove('feedback', 'cut');
+      });
+
+      updateFbHUD();
+      spawnFeedback();
+    }
+
+    function spawnFeedback() {
+      if (!fb.running) return;
+
+      const band = Math.floor(Math.random() * 7);
+      fb.active = band;
+
+      const btn = document.querySelector(`[data-band="${band}"]`);
+      btn.classList.add('feedback');
+
+      // Time to react decreases with level
+      const reactTime = Math.max(600, 2000 - fb.level * 150);
+
+      window.gameTimer = setTimeout(() => {
+        if (fb.active === band) {
+          missedFeedback(band);
+        }
+      }, reactTime);
+    }
+
+    function cutFeedback(band) {
+      if (!fb.running) return;
+
+      const btn = document.querySelector(`[data-band="${band}"]`);
+
+      if (fb.active === band) {
+        // Correct!
+        btn.classList.remove('feedback');
+        btn.classList.add('cut');
+        setTimeout(() => btn.classList.remove('cut'), 500);
+
+        fb.active = null;
+        fb.score += 100 * fb.level;
+        fb.kills++;
+
+        if (fb.kills % 5 === 0) {
+          fb.level++;
+        }
+
+        clearTimeout(window.gameTimer);
+        updateFbHUD();
+        setTimeout(spawnFeedback, 400);
+      }
+    }
+
+    function missedFeedback(band) {
+      const btn = document.querySelector(`[data-band="${band}"]`);
+      btn.classList.remove('feedback');
+      fb.active = null;
+      fb.lives--;
+      updateFbLives();
+
+      if (fb.lives <= 0) {
+        endFeedbackGame();
+      } else {
+        setTimeout(spawnFeedback, 800);
+      }
+    }
+
+    function updateFbHUD() {
+      document.getElementById('fbScore').textContent = fb.score;
+      document.getElementById('fbLevel').textContent = fb.level;
+      document.getElementById('fbKills').textContent = fb.kills;
+    }
+
+    function updateFbLives() {
+      const hearts = '❤️'.repeat(fb.lives) + '🖤'.repeat(3 - fb.lives);
+      document.getElementById('fbLives').textContent = hearts;
+    }
+
+    function endFeedbackGame() {
+      fb.running = false;
+      clearTimeout(window.gameTimer);
+
+      gameState.gamesPlayed++;
+      if (fb.score > gameState.highScores.feedback) {
+        gameState.highScores.feedback = fb.score;
+      }
+      saveState();
+
+      const overlay = document.getElementById('feedbackOverlay');
+      overlay.innerHTML = `
+        <div class="overlay-title">GAME OVER</div>
+        <div class="overlay-score">${fb.score}</div>
+        <div style="color:var(--text-dim)">Level ${fb.level} | Feedback Fixed: ${fb.kills}</div>
+        <div style="margin-top:20px;display:flex;gap:12px;">
+          <button class="btn active" onclick="startFeedbackGame()">Play Again</button>
+          <button class="btn" onclick="showMenu()">Back to Menu</button>
+        </div>
+      `;
+      overlay.classList.remove('hidden');
+      arcadeFinish('sound-feedback', fb.score, overlay, null);
+    }
+
+    // ========================================
+    // CUE RUNNER
+    // ========================================
+    let cue = {
+      score: 0, perfect: 0, missed: 0, running: false, progress: 0, currentCue: 0,
+      channels: [false, false, false, false], // false = muted
+      cues: [
+        { time: 10, ch: 0, action: 'unmute', label: 'Pastor On' },
+        { time: 25, ch: 1, action: 'unmute', label: 'Band In' },
+        { time: 40, ch: 3, action: 'unmute', label: 'Video' },
+        { time: 55, ch: 0, action: 'mute', label: 'Pastor Off' },
+        { time: 70, ch: 2, action: 'unmute', label: 'Keys In' },
+        { time: 85, ch: 1, action: 'mute', label: 'Band Out' },
+      ]
+    };
+
+    function startCueGame() {
+      cue = {
+        score: 0, perfect: 0, missed: 0, running: true, progress: 0, currentCue: 0,
+        channels: [false, false, false, false],
+        cues: [
+          { time: 10, ch: 0, action: 'unmute', label: 'Pastor On' },
+          { time: 25, ch: 1, action: 'unmute', label: 'Band In' },
+          { time: 40, ch: 3, action: 'unmute', label: 'Video' },
+          { time: 55, ch: 0, action: 'mute', label: 'Pastor Off' },
+          { time: 70, ch: 2, action: 'unmute', label: 'Keys In' },
+          { time: 85, ch: 1, action: 'mute', label: 'Band Out' },
+        ]
+      };
+
+      document.getElementById('cueOverlay').classList.add('hidden');
+
+      // Reset channel states
+      for (let i = 0; i < 4; i++) {
+        const btn = document.getElementById(`cueBtn${i}`);
+        btn.className = 'mute-btn muted';
+        btn.textContent = 'MUTED';
+        document.getElementById(`cueCh${i}`).className = 'channel-card';
+      }
+
+      // Setup timeline markers
+      const timeline = document.getElementById('cueTimeline');
+      timeline.querySelectorAll('.timeline-cue').forEach(m => m.remove());
+      cue.cues.forEach(c => {
+        const marker = document.createElement('div');
+        marker.className = 'timeline-cue';
+        marker.style.left = c.time + '%';
+        marker.dataset.label = c.label;
+        timeline.appendChild(marker);
+      });
+
+      updateCueHUD();
+
+      window.gameInterval = setInterval(() => {
+        if (!cue.running) return;
+
+        cue.progress += 0.5;
+        document.getElementById('cuePlayhead').style.left = cue.progress + '%';
+        document.getElementById('cueProgress').style.width = cue.progress + '%';
+
+        // Check for upcoming cue
+        const next = cue.cues[cue.currentCue];
+        if (next) {
+          const diff = next.time - cue.progress;
+          const card = document.getElementById(`cueCh${next.ch}`);
+
+          if (diff < 5 && diff > 0) {
+            card.classList.add('target');
+            document.getElementById(`cueBtn${next.ch}`).classList.add('target');
+          } else if (diff <= 0) {
+            // Missed!
+            card.classList.remove('target');
+            card.classList.add('miss');
+            document.getElementById(`cueBtn${next.ch}`).classList.remove('target');
+            setTimeout(() => card.classList.remove('miss'), 500);
+            cue.missed++;
+            cue.currentCue++;
+            updateCueHUD();
+          }
+        }
+
+        if (cue.progress >= 100) endCueGame();
+      }, 100);
+    }
+
+    function toggleCueChannel(ch) {
+      if (!cue.running) return;
+
+      cue.channels[ch] = !cue.channels[ch];
+      const btn = document.getElementById(`cueBtn${ch}`);
+      const card = document.getElementById(`cueCh${ch}`);
+
+      if (cue.channels[ch]) {
+        btn.className = 'mute-btn live';
+        btn.textContent = 'LIVE';
+      } else {
+        btn.className = 'mute-btn muted';
+        btn.textContent = 'MUTED';
+      }
+
+      // Check if correct
+      const next = cue.cues[cue.currentCue];
+      if (next && next.ch === ch) {
+        const wantLive = next.action === 'unmute';
+        const diff = Math.abs(next.time - cue.progress);
+
+        if (cue.channels[ch] === wantLive) {
+          card.classList.remove('target');
+          card.classList.add('success');
+          btn.classList.remove('target');
+          setTimeout(() => card.classList.remove('success'), 500);
+
+          if (diff < 2) {
+            cue.score += 150;
+            cue.perfect++;
+          } else if (diff < 5) {
+            cue.score += 100;
+          } else {
+            cue.score += 50;
+          }
+
+          cue.currentCue++;
+          updateCueHUD();
+        }
+      }
+    }
+
+    function updateCueHUD() {
+      document.getElementById('cueScore').textContent = cue.score;
+      document.getElementById('cuePerfect').textContent = cue.perfect;
+      document.getElementById('cueMissed').textContent = cue.missed;
+    }
+
+    function endCueGame() {
+      cue.running = false;
+      clearInterval(window.gameInterval);
+
+      gameState.gamesPlayed++;
+      if (cue.score > gameState.highScores.cue) {
+        gameState.highScores.cue = cue.score;
+      }
+      saveState();
+
+      const overlay = document.getElementById('cueOverlay');
+      overlay.innerHTML = `
+        <div class="overlay-title">SERVICE COMPLETE</div>
+        <div class="overlay-score">${cue.score}</div>
+        <div style="color:var(--text-dim)">Perfect: ${cue.perfect} | Missed: ${cue.missed}</div>
+        <div style="margin-top:20px;display:flex;gap:12px;">
+          <button class="btn active" onclick="startCueGame()">Play Again</button>
+          <button class="btn" onclick="showMenu()">Back to Menu</button>
+        </div>
+      `;
+      overlay.classList.remove('hidden');
+      arcadeFinish('sound-cue', cue.score, overlay, null);
+    }
+
+    // ========================================
+    // MIX BALANCER
+    // ========================================
+    const mixChannels = ['Kick', 'Snare', 'Bass', 'Keys', 'GTR', 'Vox'];
+    let mix = { score: 0, time: 60, running: false, levels: [], targets: [] };
+
+    function startMixGame() {
+      mix = {
+        score: 0,
+        time: 60,
+        running: true,
+        levels: mixChannels.map(() => 50),
+        targets: mixChannels.map(() => 30 + Math.random() * 40)
+      };
+
+      document.getElementById('mixOverlay').classList.add('hidden');
+      setupMixFaders();
+      updateMixHUD();
+
+      window.gameInterval = setInterval(() => {
+        if (!mix.running) return;
+
+        let totalAcc = 0;
+
+        mix.levels.forEach((level, i) => {
+          // Simulate audio variation
+          const display = Math.max(0, Math.min(100, level + (Math.random() - 0.5) * 10));
+
+          const meter = document.getElementById(`mixMeter${i}`);
+          meter.querySelector('.fader-meter-fill').style.height = display + '%';
+
+          // Check accuracy
+          const diff = Math.abs(display - mix.targets[i]);
+          const acc = Math.max(0, 1 - diff / 30);
+          totalAcc += acc;
+
+          const indicator = document.getElementById(`mixInd${i}`);
+          if (acc > 0.7) {
+            indicator.className = 'pill good';
+            indicator.textContent = '✓ Good';
+            mix.score += 2;
+          } else {
+            indicator.className = 'pill bad';
+            indicator.textContent = diff > 0 ? '↑ Higher' : '↓ Lower';
+          }
+        });
+
+        document.getElementById('mixAccuracy').textContent =
+          Math.round((totalAcc / mixChannels.length) * 100) + '%';
+        document.getElementById('mixScore').textContent = mix.score;
+
+        // Occasionally shift targets
+        if (Math.random() < 0.02) {
+          const ch = Math.floor(Math.random() * mixChannels.length);
+          mix.targets[ch] = 30 + Math.random() * 40;
+          const target = document.getElementById(`mixTarget${ch}`);
+          target.style.bottom = mix.targets[ch] + '%';
+        }
+      }, 100);
+
+      window.gameTimer = setInterval(() => {
+        mix.time--;
+        document.getElementById('mixTime').textContent = mix.time;
+        if (mix.time <= 0) endMixGame();
+      }, 1000);
+    }
+
+    function setupMixFaders() {
+      const container = document.getElementById('mixFaders');
+      container.innerHTML = '';
+
+      mixChannels.forEach((name, i) => {
+        const ch = document.createElement('div');
+        ch.className = 'fader-channel';
+        ch.innerHTML = `
+          <div class="fader-name">${name}</div>
+          <div class="fader-meter" id="mixMeter${i}">
+            <div class="fader-meter-fill" style="height:50%"></div>
+            <div class="fader-meter-target" id="mixTarget${i}" style="bottom:${mix.targets[i]}%"></div>
+          </div>
+          <input type="range" class="fader-slider" min="0" max="100" value="50"
+                 oninput="mix.levels[${i}] = this.value">
+          <div class="pill" id="mixInd${i}" style="font-size:10px;">--</div>
+        `;
+        container.appendChild(ch);
+      });
+    }
+
+    function updateMixHUD() {
+      document.getElementById('mixScore').textContent = mix.score;
+      document.getElementById('mixTime').textContent = mix.time;
+    }
+
+    function endMixGame() {
+      mix.running = false;
+      clearInterval(window.gameInterval);
+      clearInterval(window.gameTimer);
+
+      gameState.gamesPlayed++;
+      if (mix.score > gameState.highScores.mix) {
+        gameState.highScores.mix = mix.score;
+      }
+      saveState();
+
+      const overlay = document.getElementById('mixOverlay');
+      overlay.innerHTML = `
+        <div class="overlay-title">TIME'S UP!</div>
+        <div class="overlay-score">${mix.score}</div>
+        <div style="margin-top:20px;display:flex;gap:12px;">
+          <button class="btn active" onclick="startMixGame()">Play Again</button>
+          <button class="btn" onclick="showMenu()">Back to Menu</button>
+        </div>
+      `;
+      overlay.classList.remove('hidden');
+      arcadeFinish('sound-mix', mix.score, overlay, null);
+    }
+
+    // ========================================
+    // INIT
+    // ========================================
+    document.addEventListener('DOMContentLoaded', function () {
+      loadState();
+      paintCardExtras();
+    });
+  </script>
+</body>
+</html>

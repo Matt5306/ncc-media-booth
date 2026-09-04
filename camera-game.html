@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camera Op Training Game</title>
+<style>
+  /*
+   * STYLE MATCHES THE ACTUAL TOOL + mixing-games.html
+   * So muscle memory transfers from games to real usage.
+   *
+   * BOOTH NOTES:
+   *  - No server, no network, no external files. Double-click and it runs.
+   *  - Falls back to a drawn sanctuary scene if the webcam is unavailable.
+   *  - Auto-returns to the attract screen after 45s of no input.
+   */
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #7c3aed;
+    --green: #3fb950;
+    --red: #f85149;
+    --gold: #d29922;
+    --btn: #21262d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .topbar {
+    background: var(--panel);
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .brand h1 { font-size: 18px; }
+  .brand .sub { font-size: 12px; color: var(--text-dim); }
+  .nav a {
+    padding: 8px 16px; border-radius: 6px; color: var(--text-dim);
+    text-decoration: none; font-size: 14px;
+  }
+  .nav a:hover { background: var(--btn); color: var(--text); }
+
+  .btn {
+    display: inline-block; padding: 14px 28px; border-radius: 8px;
+    background: var(--btn); color: var(--text); border: 1px solid var(--border);
+    font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.big { padding: 20px 44px; font-size: 22px; }
+
+  /* ---------- screens ---------- */
+  .screen { display: none; height: calc(100vh - 57px); }
+  .screen.active { display: flex; }
+
+  #attract, #results {
+    flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 24px; gap: 18px;
+  }
+  #attract h2 { font-size: 46px; letter-spacing: -1px; }
+  #attract .tag { font-size: 20px; color: var(--text-dim); max-width: 620px; line-height: 1.5; }
+  .pulse { animation: pulse 2.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+
+  .learn-list {
+    display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+    max-width: 780px; margin-top: 6px;
+  }
+  .chip {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 16px; font-size: 14px; color: var(--text-dim);
+  }
+
+  /* ---------- game layout ---------- */
+  #game { flex-direction: column; padding: 14px 18px; gap: 12px; }
+
+  .hud {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .tally {
+    display: flex; align-items: center; gap: 9px; font-weight: 700;
+    font-size: 14px; letter-spacing: 1px; padding: 7px 14px; border-radius: 6px;
+    background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
+  }
+  .tally .dot {
+    width: 13px; height: 13px; border-radius: 50%; background: #4d1f1f;
+  }
+  .tally.live { color: #fff; background: #3d0f0f; border-color: var(--red); }
+  .tally.live .dot { background: var(--red); box-shadow: 0 0 12px var(--red); }
+
+  .stat { font-size: 14px; color: var(--text-dim); }
+  .stat b { color: var(--text); font-size: 20px; font-variant-numeric: tabular-nums; }
+
+  .call {
+    flex: 1; min-width: 260px; background: var(--panel); border: 1px solid var(--border);
+    border-left: 4px solid var(--accent); border-radius: 8px; padding: 10px 16px;
+  }
+  .call .who { font-size: 11px; color: var(--accent); letter-spacing: 1.5px; font-weight: 700; }
+  .call .what { font-size: 19px; font-weight: 600; margin-top: 2px; }
+  .call .why { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+
+  /* ---------- viewfinder ---------- */
+  .stage { flex: 1; display: flex; gap: 16px; min-height: 0; }
+
+  .vf-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .viewfinder {
+    position: relative; flex: 1; min-height: 0;
+    background: #000; border: 3px solid var(--border); border-radius: 10px;
+    overflow: hidden;
+  }
+  .viewfinder.locked { border-color: var(--green); box-shadow: 0 0 26px rgba(63,185,80,.45); }
+  .viewfinder.livehot { border-color: var(--red); }
+
+  #feed, #fallback, #photo {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; transform-origin: center center;
+    will-change: transform;
+  }
+  #fallback, #photo { display: none; }
+
+  /* overlays */
+  .ovl { position: absolute; inset: 0; pointer-events: none; }
+  .thirds line { stroke: rgba(255,255,255,.30); stroke-width: 1; }
+  .headroom line { stroke: rgba(88,166,255,.55); stroke-width: 1.5; stroke-dasharray: 7 6; }
+  .target-box {
+    position: absolute; border: 2.5px dashed var(--gold); border-radius: 4px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.28);
+    transition: opacity .3s;
+  }
+  .target-label {
+    position: absolute; top: -26px; left: 0; background: var(--gold); color: #1a1200;
+    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 4px; letter-spacing: .5px;
+  }
+
+  .lockbar {
+    position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+    width: 240px; height: 9px; background: rgba(0,0,0,.65); border-radius: 5px;
+    border: 1px solid var(--border); overflow: hidden; opacity: 0; transition: opacity .2s;
+  }
+  .lockbar.show { opacity: 1; }
+  .lockbar i { display: block; height: 100%; width: 0%; background: var(--green); }
+
+  .flash {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 62px; font-weight: 900; letter-spacing: 3px; opacity: 0;
+    pointer-events: none; text-shadow: 0 4px 30px rgba(0,0,0,.9);
+  }
+  .flash.go { animation: flashGo .85s ease-out; }
+  @keyframes flashGo {
+    0% { opacity: 0; transform: scale(.7); }
+    22% { opacity: 1; transform: scale(1.06); }
+    100% { opacity: 0; transform: scale(1.16); }
+  }
+
+  .shakewarn {
+    position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+    background: rgba(210,153,34,.94); color: #1a1200; font-weight: 800; font-size: 13px;
+    padding: 6px 16px; border-radius: 6px; opacity: 0; transition: opacity .25s;
+    letter-spacing: .5px;
+  }
+  .shakewarn.show { opacity: 1; }
+
+  /* ---------- controls ---------- */
+  .controls {
+    width: 240px; display: flex; flex-direction: column; gap: 12px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px;
+  }
+  .ctl-title { font-size: 11px; color: var(--text-dim); letter-spacing: 1.4px; font-weight: 700; text-align: center; }
+  .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .pad {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 21px; padding: 15px 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-family: inherit;
+    touch-action: none;
+  }
+  .pad:active, .pad.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pad.blank { visibility: hidden; }
+  .zoomrow { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .readout {
+    font-size: 12px; color: var(--text-dim); text-align: center;
+    font-variant-numeric: tabular-nums; line-height: 1.7;
+  }
+  .readout b { color: var(--text); }
+
+  .hint { font-size: 12px; color: var(--text-dim); text-align: center; line-height: 1.5; }
+
+  /* ---------- results ---------- */
+  .grade { font-size: 82px; font-weight: 900; line-height: 1; }
+  .scoreline { font-size: 22px; color: var(--text-dim); }
+  .breakdown {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 26px; text-align: left; min-width: 340px;
+  }
+  .breakdown div { display: flex; justify-content: space-between; gap: 30px; padding: 5px 0; font-size: 15px; }
+  .breakdown b { font-variant-numeric: tabular-nums; }
+  .pitch { max-width: 560px; font-size: 17px; line-height: 1.6; color: var(--text-dim); }
+  .pitch b { color: var(--text); }
+
+  .err {
+    background: rgba(248,81,73,.12); border: 1px solid var(--red); color: var(--text);
+    padding: 12px 18px; border-radius: 8px; font-size: 14px; max-width: 560px;
+  }
+
+  .panels { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin: 4px 0; }
+  .panels .arc-how { max-width: 430px; }
+
+  @media (max-width: 900px) {
+    .stage { flex-direction: column; }
+    .controls { width: 100%; flex-direction: row; align-items: center; }
+    .dpad { flex: 1; max-width: 210px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>Camera Op</h1>
+    <div class="sub">Media Team Training &middot; Framing &amp; Shot Calls</div>
+  </div>
+  <div class="nav">
+    <a href="mixing-games.html">Sound Games</a>
+    <a href="learning-hub.html">Learning Hub</a>
+  </div>
+</div>
+
+<!-- ============ ATTRACT ============ -->
+<div class="screen active" id="attract">
+  <h2>Can you run camera?</h2>
+  <div class="tag">
+    The director calls a shot in your headset. You have seconds to frame it and hold it steady.
+    Miss it and the whole church sees the wrong thing on screen.
+  </div>
+  <button class="btn primary big pulse" id="startBtn">Take the Camera</button>
+  <div class="learn-list">
+    <div class="chip">Headroom</div>
+    <div class="chip">Rule of thirds</div>
+    <div class="chip">Lead room</div>
+    <div class="chip">Smooth moves</div>
+    <div class="chip">Tally lights</div>
+  </div>
+  <div class="panels" id="panels"></div>
+  <div class="hint" style="margin-top:4px">60 seconds &middot; Arrow keys, the on-screen pad, or a game controller</div>
+  <div class="hint" id="padHint" style="color:var(--accent)">Plug in a game controller for a real joystick feel.</div>
+  <div id="camNote"></div>
+</div>
+
+<!-- ============ GAME ============ -->
+<div class="screen" id="game">
+  <div class="hud">
+    <div class="tally" id="tally"><span class="dot"></span><span id="tallyText">STANDBY</span></div>
+    <div class="tally" id="padBadge" style="display:none">&#127918; STICK</div>
+    <div class="stat">TIME <b id="timeLeft">60</b></div>
+    <div class="stat">SCORE <b id="score">0</b></div>
+    <div class="stat">SHOTS <b id="shotCount">0</b></div>
+    <div class="call">
+      <div class="who">DIRECTOR</div>
+      <div class="what" id="callText">Stand by&hellip;</div>
+      <div class="why" id="callWhy"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="vf-wrap">
+      <div class="viewfinder" id="vf">
+        <video id="feed" autoplay playsinline muted></video>
+        <svg id="fallback" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice"></svg>
+        <img id="photo" alt="">
+
+        <svg class="ovl thirds" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <line x1="33.33" y1="0" x2="33.33" y2="100"/>
+          <line x1="66.66" y1="0" x2="66.66" y2="100"/>
+          <line x1="0" y1="33.33" x2="100" y2="33.33"/>
+          <line x1="0" y1="66.66" x2="100" y2="66.66"/>
+        </svg>
+
+        <div class="target-box" id="targetBox"><div class="target-label" id="targetLabel">TARGET</div></div>
+
+        <div class="lockbar" id="lockbar"><i id="lockfill"></i></div>
+        <div class="shakewarn" id="shake">TOO JERKY &mdash; EASE INTO IT</div>
+        <div class="flash" id="flash"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl-title">PAN / TILT</div>
+      <div class="dpad">
+        <div class="pad blank"></div>
+        <button class="pad" data-act="up">&#9650;</button>
+        <div class="pad blank"></div>
+        <button class="pad" data-act="left">&#9664;</button>
+        <div class="pad blank"></div>
+        <button class="pad" data-act="right">&#9654;</button>
+        <div class="pad blank"></div>
+        <button class="pad" data-act="down">&#9660;</button>
+        <div class="pad blank"></div>
+      </div>
+      <div class="ctl-title">ZOOM</div>
+      <div class="zoomrow">
+        <button class="pad" data-act="out">&minus;</button>
+        <button class="pad" data-act="in">+</button>
+      </div>
+      <div class="readout">
+        ZOOM <b id="roZoom">1.5</b>&times;<br>
+        <span id="roFrame">WIDE</span>
+      </div>
+      <div class="hint">Hold to move.<br>Gentle wins.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RESULTS ============ -->
+<div class="screen" id="results">
+  <div class="grade" id="grade">B</div>
+  <div class="scoreline" id="resultLine">Nice work</div>
+  <div class="breakdown" id="breakdown"></div>
+  <div id="hiscore"></div>
+  <div class="pitch" id="pitch"></div>
+  <button class="btn primary big" id="againBtn">Run It Again</button>
+  <div class="hint">Ask a media team member what the tally light means. They love that question.</div>
+</div>
+
+<script src="js/arcade.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var GAME_ID = 'camera';
+
+  // If arcade.js did not load, the leaderboard and how-to quietly disappear and
+  // the GAME STILL RUNS. A missing side feature must never take the booth down.
+  // Defensive merge, not a wholesale replacement. `window.Arcade` may be absent
+  // (script failed to load) OR present but stale from cache and missing newer
+  // members. Filling in per-function covers both, so a side feature can never
+  // take the game down with it.
+  var Arcade = window.Arcade || {};
+  ['howTo','boardHTML','initialsHTML'].forEach(function (k) {
+    if (typeof Arcade[k] !== 'function') Arcade[k] = function () { return ''; };
+  });
+  if (typeof Arcade.qualifies !== 'function') Arcade.qualifies = function () { return false; };
+  if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
+  if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
+  if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+
+  // ---------------------------------------------------------------- config
+  var ROUND_SECONDS = 60;
+  var CALL_TIMEOUT  = 16;    // seconds before a shot call expires
+  var HOLD_TO_LOCK  = 0.6;   // seconds inside tolerance to lock the shot
+  var IDLE_RESET    = 45000; // ms of no input on results/attract -> attract
+
+  // Virtual camera limits
+  var ZOOM_MIN = 1.4, ZOOM_MAX = 3.6;
+  var TILT_MAX = 16;
+
+  // Shot calls. p/t are percent offsets, z is zoom.
+  // tol is how close you must get (normalised distance).
+  var SHOTS = [
+    { name:'WIDE',        z:1.55, p:0,   t:0,
+      call:'Camera 1, give me the WIDE.',
+      why:'Establish the room. Everything in frame, nothing cut off.',
+      teach:'Wide shots set the scene. Leave the edges alone.' },
+    { name:'MEDIUM',      z:2.25, p:0,   t:-5,
+      call:'Push in to a MEDIUM.',
+      why:'Waist up. Put the eyes on the upper third line.',
+      teach:'Eyes on the upper third is the single biggest framing rule.' },
+    { name:'CLOSE-UP',    z:3.10, p:0,   t:-7,
+      call:'Tight CLOSE-UP on the speaker.',
+      why:'Head and shoulders. Watch your headroom.',
+      teach:'Too much headroom is the most common beginner mistake.' },
+    { name:'FRAME LEFT',  z:2.40, p:-13, t:-5,
+      call:'FRAME LEFT &mdash; give them lead room.',
+      why:'Subject on the left third, space on the right to look into.',
+      teach:'People need room to look into. Never crowd the face.' },
+    { name:'FRAME RIGHT', z:2.40, p:13,  t:-5,
+      call:'FRAME RIGHT now.',
+      why:'Subject on the right third, space on the left.',
+      teach:'Lead room works both directions. Match the way they face.' },
+    { name:'CONGREGATION',z:1.70, p:0,   t:9,
+      call:'Tilt down &mdash; get me the CONGREGATION.',
+      why:'Show the people. Wide and low.',
+      teach:'Cutaways to the congregation make a service feel alive.' },
+    { name:'STAGE LEFT',  z:2.05, p:-16, t:-2,
+      call:'Find the band, STAGE LEFT.',
+      why:'Pan left and hold. Do not overshoot.',
+      teach:'Stop before you get there, then settle. Never snap.' }
+  ];
+  // How close you must get before the shot locks. Widened deliberately: a first
+  // round should land 4-6 shots, not one. The lesson is "find it and hold it
+  // steady", and that lesson survives a generous tolerance - being stingy here
+  // just makes strangers feel stupid and walk away.
+  var TOL = 0.20;
+
+  // ---------------------------------------------------------------- state
+  var cam   = { z: 1.55, p: 0, t: 0 };
+  var held  = {};                       // which controls are down
+  var st    = null;                     // round state
+  var raf   = null;
+  var idleTimer = null;
+  var usingFallback = false;
+  var stream = null;
+
+  // ---------------------------------------------------------------- dom
+  function $(id) { return document.getElementById(id); }
+  var feed = $('feed'), fallback = $('fallback'), vf = $('vf');
+  var photo = $('photo'), photoReady = false;
+  var targetBox = $('targetBox'), targetLabel = $('targetLabel');
+  var lockbar = $('lockbar'), lockfill = $('lockfill');
+  var flashEl = $('flash'), shakeEl = $('shake');
+  var tallyEl = $('tally'), tallyText = $('tallyText');
+
+  // ---------------------------------------------------------------- screens
+  function show(id) {
+    ['attract','game','results'].forEach(function (s) {
+      $(s).classList.toggle('active', s === id);
+    });
+  }
+
+  function armIdle() {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      if (!$('game').classList.contains('active')) {
+        stopCamera();
+        show('attract');
+      }
+    }, IDLE_RESET);
+  }
+  ['pointerdown','keydown'].forEach(function (e) {
+    document.addEventListener(e, armIdle, true);
+  });
+
+  // ---------------------------------------------------------------- camera
+  function buildFallbackScene() {
+    // A drawn sanctuary so the game still works with no webcam at all.
+    fallback.innerHTML =
+      '<defs>' +
+      '  <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">' +
+      '    <stop offset="0%" stop-color="#1b2330"/><stop offset="100%" stop-color="#0d1117"/>' +
+      '  </linearGradient>' +
+      '  <radialGradient id="spot" cx="50%" cy="30%" r="45%">' +
+      '    <stop offset="0%" stop-color="rgba(255,225,170,.40)"/>' +
+      '    <stop offset="100%" stop-color="rgba(255,225,170,0)"/>' +
+      '  </radialGradient>' +
+      '</defs>' +
+      '<rect width="800" height="450" fill="url(#wall)"/>' +
+      '<rect width="800" height="450" fill="url(#spot)"/>' +
+      // back wall panels
+      '<rect x="150" y="40" width="150" height="210" fill="#161b22" stroke="#232b36"/>' +
+      '<rect x="500" y="40" width="150" height="210" fill="#161b22" stroke="#232b36"/>' +
+      // screen
+      '<rect x="325" y="55" width="150" height="90" rx="4" fill="#0b1a2e" stroke="#2a4a6e"/>' +
+      '<text x="400" y="108" text-anchor="middle" fill="#2f6ea8" font-size="19" font-family="sans-serif">WELCOME</text>' +
+      // stage
+      '<rect x="0" y="300" width="800" height="150" fill="#11161d"/>' +
+      '<rect x="0" y="296" width="800" height="6" fill="#222b36"/>' +
+      // pulpit
+      '<rect x="368" y="238" width="64" height="62" rx="3" fill="#1d242e" stroke="#2b3543"/>' +
+      // speaker figure
+      '<circle cx="400" cy="205" r="26" fill="#3a4657"/>' +
+      '<path d="M362 300 q38 -62 76 0 z" fill="#33404f"/>' +
+      // band, stage left
+      '<circle cx="185" cy="232" r="17" fill="#333e4d"/>' +
+      '<path d="M160 300 q25 -48 50 0 z" fill="#2c3745"/>' +
+      '<circle cx="243" cy="238" r="15" fill="#2f3a48"/>' +
+      '<path d="M221 300 q22 -42 44 0 z" fill="#28323f"/>' +
+      // congregation
+      '<g fill="#1a212b">' +
+      '<circle cx="90" cy="392" r="19"/><circle cx="200" cy="404" r="19"/>' +
+      '<circle cx="320" cy="396" r="19"/><circle cx="440" cy="406" r="19"/>' +
+      '<circle cx="560" cy="394" r="19"/><circle cx="680" cy="404" r="19"/>' +
+      '</g>' +
+      '<text x="400" y="440" text-anchor="middle" fill="#2b3543" font-size="13" font-family="sans-serif">SIMULATED SANCTUARY &mdash; NO CAMERA DETECTED</text>';
+  }
+
+  function startCamera() {
+    // Returns a promise that always resolves; falls back on any failure.
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return Promise.resolve(useFallback('This browser will not share a camera.'));
+    }
+    // If nobody answers the permission prompt the promise never settles, which would
+    // freeze the booth on "Starting camera...". Race it against a timeout.
+    var timeout = new Promise(function (resolve) {
+      setTimeout(function () { resolve('__timeout__'); }, 15000);
+    });
+
+    var ask = navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+      audio: false
+    });
+
+    return Promise.race([ask, timeout]).then(function (s) {
+      if (s === '__timeout__') {
+        // Let a late "Allow" still work, but do not keep the visitor waiting.
+        ask.then(function (late) { stream = late; }).catch(function () {});
+        return useFallback('No answer to the camera prompt.');
+      }
+      stream = s;
+      feed.srcObject = s;
+      usingFallback = false;
+      feed.style.display = 'block';
+      fallback.style.display = 'none';
+      // Deliberately NOT mirrored: real camera monitors are not mirrored, and
+      // pan-left should move the frame left the way it does on the real rig.
+      return true;
+    }).catch(function (err) {
+      return useFallback(err && err.name === 'NotAllowedError'
+        ? 'Camera permission was declined.'
+        : 'No camera available.');
+    });
+  }
+
+  // Chooses which stand-in the viewfinder shows. A real photo of the sanctuary
+  // beats the drawn scene every time, so it wins whenever one has been dropped
+  // into assets/. Explicit display values: the stylesheet hides both by default.
+  function applyFallbackLayer() {
+    feed.style.display = 'none';
+    if (photoReady) {
+      photo.style.display = 'block';
+      fallback.style.display = 'none';
+    } else {
+      buildFallbackScene();
+      fallback.style.display = 'block';
+      photo.style.display = 'none';
+    }
+  }
+
+  function useFallback(msg) {
+    usingFallback = true;
+    applyFallbackLayer();
+    var note = $('camNote');
+    if (note) {
+      note.innerHTML = '<div class="err">' + msg +
+        ' Running on the simulated sanctuary instead &mdash; the game plays exactly the same.</div>';
+    }
+    return false;
+  }
+
+  function stopCamera() {
+    if (stream) {
+      stream.getTracks().forEach(function (t) { t.stop(); });
+      stream = null;
+    }
+  }
+
+  // ---------------------------------------------------------------- maths
+  function panLimit(z) { return 50 * (z - 1) / z; }
+
+  function clampCam() {
+    if (cam.z < ZOOM_MIN) cam.z = ZOOM_MIN;
+    if (cam.z > ZOOM_MAX) cam.z = ZOOM_MAX;
+    var pl = panLimit(cam.z);
+    if (cam.p >  pl) cam.p =  pl;
+    if (cam.p < -pl) cam.p = -pl;
+    var tl = Math.min(TILT_MAX, pl);
+    if (cam.t >  tl) cam.t =  tl;
+    if (cam.t < -tl) cam.t = -tl;
+  }
+
+  function applyCam() {
+    // Divide the translate by zoom so pan speed feels constant to the operator.
+    var el = !usingFallback ? feed : (photoReady ? photo : fallback);
+    var tx = (-cam.p / cam.z), ty = (-cam.t / cam.z);
+    el.style.transform = 'scale(' + cam.z.toFixed(3) + ') translate(' +
+      tx.toFixed(3) + '%, ' + ty.toFixed(3) + '%)';
+    $('roZoom').textContent = cam.z.toFixed(1);
+    $('roFrame').textContent =
+      cam.z < 1.8 ? 'WIDE' : cam.z < 2.7 ? 'MEDIUM' : 'CLOSE';
+  }
+
+  // Normalised distance from the current camera to a target shot.
+  function distTo(shot) {
+    var dz = (cam.z - shot.z) / (ZOOM_MAX - ZOOM_MIN);
+    var dp = (cam.p - shot.p) / 40;
+    var dt = (cam.t - shot.t) / 26;
+    return Math.sqrt(dz * dz + dp * dp + dt * dt);
+  }
+
+  // ---------------------------------------------------------------- target box
+  // The dashed box shows the shot you are being asked for, drawn relative to what
+  // you are currently seeing. Drive the camera until the box lines up with the
+  // edges of the viewfinder and you have the shot. It converges as you get closer,
+  // which is what makes the control scheme learnable without instructions.
+  function drawTarget(shot) {
+    if (!shot) return;
+    var frac = cam.z / shot.z;              // 1.0 when the zoom is correct
+    var w = frac * 100, h = frac * 100;
+    var cx = 50 + (shot.p - cam.p);         // 50 when pan is correct
+    var cy = 50 + (shot.t - cam.t);         // 50 when tilt is correct
+
+    targetBox.style.width  = w + '%';
+    targetBox.style.height = h + '%';
+    targetBox.style.left   = (cx - w / 2) + '%';
+    targetBox.style.top    = (cy - h / 2) + '%';
+    targetLabel.textContent = shot.name;
+    targetBox.style.opacity = '1';
+
+    var close = distTo(shot) <= TOL;
+    targetBox.style.borderColor = close ? 'var(--green)' : 'var(--gold)';
+    targetLabel.style.background = close ? 'var(--green)' : 'var(--gold)';
+  }
+
+  // ---------------------------------------------------------------- round
+  function newCall() {
+    // Never repeat the shot we just did.
+    var pool = SHOTS.filter(function (s) { return !st.last || s.name !== st.last; });
+    var shot = pool[Math.floor(Math.random() * pool.length)];
+    st.last = shot.name;
+    st.shot = shot;
+    st.callStart = performance.now();
+    st.holdFor = 0;
+    st.locked = false;
+    $('callText').innerHTML = shot.call;
+    $('callWhy').textContent = shot.why;
+    drawTarget(shot);
+    setTally(false);
+  }
+
+  function setTally(live) {
+    tallyEl.classList.toggle('live', live);
+    tallyText.textContent = live ? 'ON AIR' : 'STANDBY';
+    vf.classList.toggle('livehot', live);
+  }
+
+  function lockShot() {
+    st.locked = true;
+    var d = distTo(st.shot);
+    var accuracy = Math.max(0, 1 - d / TOL);              // 0..1
+    var elapsed = (performance.now() - st.callStart) / 1000;
+    var speed = Math.max(0, 1 - elapsed / CALL_TIMEOUT);  // 0..1
+    var smooth = Math.max(0, 1 - st.jerkThisCall / 12);   // 0..1
+
+    var pts = Math.round(100 * accuracy + 60 * speed + 40 * smooth);
+    st.score += pts;
+    st.shots += 1;
+    st.accSum += accuracy;
+    st.spdSum += speed;
+    st.smoothSum += smooth;
+    st.taught[st.shot.name] = st.shot.teach;
+
+    $('score').textContent = st.score;
+    $('shotCount').textContent = st.shots;
+
+    setTally(true);
+    vf.classList.add('locked');
+    flashEl.style.color = '#3fb950';
+    flashEl.textContent = 'SHOT! +' + pts;
+    flashEl.classList.remove('go');
+    void flashEl.offsetWidth;
+    flashEl.classList.add('go');
+
+    lockbar.classList.remove('show');
+    targetBox.style.opacity = '0';
+
+    setTimeout(function () {
+      if (!st.running) return;
+      vf.classList.remove('locked');
+      setTally(false);
+      st.jerkThisCall = 0;
+      newCall();
+    }, 1000);
+  }
+
+  function missCall() {
+    st.misses += 1;
+    flashEl.style.color = '#f85149';
+    flashEl.textContent = 'MISSED';
+    flashEl.classList.remove('go');
+    void flashEl.offsetWidth;
+    flashEl.classList.add('go');
+    lockbar.classList.remove('show');
+    st.jerkThisCall = 0;
+    newCall();
+  }
+
+  // ---------------------------------------------------------------- gamepad
+  // Reads any connected controller. Left stick = pan/tilt, triggers or right
+  // stick = zoom. Deadzone removed and the remainder re-scaled so slow, precise
+  // moves are actually reachable near centre - that is the whole point of a stick.
+  var DEADZONE = 0.16;
+
+  function curve(v) {
+    var a = Math.abs(v);
+    if (a < DEADZONE) return 0;
+    var n = (a - DEADZONE) / (1 - DEADZONE);
+    // Squared response: fine control near centre, full speed at the edge.
+    return (v < 0 ? -1 : 1) * n * n;
+  }
+
+  function readGamepad() {
+    if (!navigator.getGamepads) return { active: false, x:0, y:0, z:0 };
+    var pads = navigator.getGamepads();
+    for (var i = 0; i < pads.length; i++) {
+      var g = pads[i];
+      if (!g || !g.connected) continue;
+
+      var x = curve(g.axes[0] || 0);
+      var y = curve(g.axes[1] || 0);
+
+      // Zoom: prefer analogue triggers, fall back to the right stick, then bumpers.
+      var z = 0;
+      if (g.buttons.length > 7) {
+        var lt = g.buttons[6] ? g.buttons[6].value : 0;
+        var rt = g.buttons[7] ? g.buttons[7].value : 0;
+        z = rt - lt;
+      }
+      if (!z && g.axes.length > 3) z = -curve(g.axes[3] || 0);
+      if (!z && g.buttons.length > 5) {
+        z = (g.buttons[5] && g.buttons[5].pressed ? 1 : 0) -
+            (g.buttons[4] && g.buttons[4].pressed ? 1 : 0);
+      }
+
+      if (!padSeen) { padSeen = true; showPadBadge(g.id); }
+      return { active: true, x: x, y: y, z: z };
+    }
+    return { active: false, x:0, y:0, z:0 };
+  }
+
+  var padSeen = false;
+  function showPadBadge(id) {
+    var el = $('padBadge');
+    if (el) {
+      el.style.display = 'inline-flex';
+      el.title = id || 'Controller';
+    }
+    var note = $('padHint');
+    if (note) note.textContent = 'Controller connected — left stick pans, triggers zoom.';
+  }
+
+  window.addEventListener('gamepadconnected', function (e) {
+    padSeen = true; showPadBadge(e.gamepad && e.gamepad.id);
+  });
+  window.addEventListener('gamepaddisconnected', function () {
+    padSeen = false;
+    var el = $('padBadge'); if (el) el.style.display = 'none';
+    var note = $('padHint');
+    if (note) note.textContent = 'Plug in a game controller for a real joystick feel.';
+  });
+
+  function flagJerk(now) {
+    st.jerk += 1; st.jerkThisCall += 1;
+    shakeEl.classList.add('show');
+    clearTimeout(st.shakeTimer);
+    st.shakeTimer = setTimeout(function () { shakeEl.classList.remove('show'); }, 900);
+  }
+
+  // ---------------------------------------------------------------- loop
+  function tick(now) {
+    if (!st || !st.running) return;
+    var dt = Math.min(0.05, (now - st.lastFrame) / 1000);
+    st.lastFrame = now;
+
+    // --- movement: analog stick if a controller is plugged in, else keys/buttons.
+    // A real PTZ joystick is PROPORTIONAL - a nudge creeps, a shove swings. Keys
+    // are on/off, which teaches a habit the real rig punishes. So when a gamepad
+    // is present we take its axes directly and let magnitude drive speed.
+    var pad = readGamepad();
+    var speed = 34 * dt;              // percent per second at full deflection
+    var zSpeed = 1.6 * dt;
+    var ax = 0, ay = 0, az = 0;
+
+    // Stick wins while it is being moved; keys still work if someone lets go of
+    // the controller and reaches for the keyboard, which happens constantly.
+    var stickLive = pad.active && (pad.x || pad.y || pad.z);
+    if (stickLive) {
+      ax = pad.x; ay = pad.y; az = pad.z;
+    } else {
+      if (held.left)  ax -= 1;
+      if (held.right) ax += 1;
+      if (held.up)    ay -= 1;
+      if (held.down)  ay += 1;
+      if (held.in)    az += 1;
+      if (held.out)   az -= 1;
+    }
+
+    var moved = (ax || ay || az);
+    if (moved) {
+      cam.p += ax * speed;
+      cam.t += ay * speed;
+      cam.z += az * zSpeed;
+    }
+    clampCam();
+    if (moved) applyCam();
+    if (!st.locked) drawTarget(st.shot);   // box converges as you close in
+
+    // --- jerkiness: what looks bad on screen is a sudden change of direction.
+    // On a stick we can measure that properly, as the rate of change of input.
+    if (stickLive) {
+      var dax = Math.abs(ax - st.lastAx) + Math.abs(ay - st.lastAy) + Math.abs(az - st.lastAz);
+      if (dax / Math.max(dt, 0.001) > 9) flagJerk(now);
+      st.lastAx = ax; st.lastAy = ay; st.lastAz = az;
+    } else {
+      var sig = (held.left?1:0)+(held.right?2:0)+(held.up?4:0)+(held.down?8:0)+(held.in?16:0)+(held.out?32:0);
+      if (sig !== st.lastSig) {
+        if (now - st.lastSigChange < 260 && sig !== 0 && st.lastSig !== 0) flagJerk(now);
+        st.lastSig = sig;
+        st.lastSigChange = now;
+      }
+    }
+
+    // --- lock progress
+    if (!st.locked && st.shot) {
+      var d = distTo(st.shot);
+      if (d <= TOL) {
+        st.holdFor += dt;
+        lockbar.classList.add('show');
+        lockfill.style.width = Math.min(100, (st.holdFor / HOLD_TO_LOCK) * 100) + '%';
+        if (st.holdFor >= HOLD_TO_LOCK) lockShot();
+      } else {
+        st.holdFor = 0;
+        lockbar.classList.remove('show');
+      }
+
+      // call expiry
+      if ((now - st.callStart) / 1000 > CALL_TIMEOUT) missCall();
+    }
+
+    // --- clock
+    var left = ROUND_SECONDS - (now - st.roundStart) / 1000;
+    if (left <= 0) { endRound(); return; }
+    $('timeLeft').textContent = Math.ceil(left);
+
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ---------------------------------------------------------------- start / end
+  function startRound() {
+    cam = { z: 1.55, p: 0, t: 0 };
+    held = {};
+    clampCam(); applyCam();
+
+    st = {
+      running: true, score: 0, shots: 0, misses: 0,
+      accSum: 0, spdSum: 0, smoothSum: 0,
+      jerk: 0, jerkThisCall: 0,
+      lastSig: 0, lastSigChange: 0, shakeTimer: null,
+      lastAx: 0, lastAy: 0, lastAz: 0,
+      taught: {}, last: null, shot: null,
+      roundStart: performance.now(), lastFrame: performance.now(),
+      callStart: 0, holdFor: 0, locked: false
+    };
+
+    $('score').textContent = '0';
+    $('shotCount').textContent = '0';
+    $('timeLeft').textContent = ROUND_SECONDS;
+    vf.classList.remove('locked');
+
+    show('game');
+    newCall();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function endRound() {
+    st.running = false;
+    cancelAnimationFrame(raf);
+    setTally(false);
+    targetBox.style.opacity = '0';
+    lockbar.classList.remove('show');
+
+    var n = Math.max(1, st.shots);
+    var acc = st.accSum / n, spd = st.spdSum / n, smo = st.smoothSum / n;
+    // Completion matters as much as quality: nailing one shot and dropping four
+    // is not a B. Averages alone would flatter people, which helps nobody.
+    var completion = st.shots / Math.max(1, st.shots + st.misses);
+    var overall = (acc * 0.35 + spd * 0.15 + smo * 0.20 + completion * 0.30);
+
+    var grade, colour, line;
+    if (st.shots === 0)      { grade = '-';  colour = 'var(--text-dim)'; line = 'No shots locked. Try again — it clicks fast.'; }
+    else if (overall > 0.82) { grade = 'A';  colour = 'var(--green)';    line = 'That is broadcast standard. Seriously.'; }
+    else if (overall > 0.68) { grade = 'B';  colour = 'var(--accent)';   line = 'Solid. You could run camera this Sunday.'; }
+    else if (overall > 0.50) { grade = 'C';  colour = 'var(--gold)';     line = 'Getting there. Framing is a muscle.'; }
+    else                     { grade = 'D';  colour = 'var(--red)';      line = 'Rough round — but everyone starts here.'; }
+
+    $('grade').textContent = grade;
+    $('grade').style.color = colour;
+    $('resultLine').textContent = line;
+
+    $('breakdown').innerHTML =
+      row('Shots locked', st.shots) +
+      row('Shots missed', st.misses) +
+      row('Calls made', pct(completion)) +
+      row('Framing accuracy', pct(acc)) +
+      row('Speed to shot', pct(spd)) +
+      row('Smoothness', pct(smo)) +
+      row('Final score', st.score);
+
+    var lessons = Object.keys(st.taught).map(function (k) { return st.taught[k]; });
+    var lesson = lessons.length
+      ? '<b>What you just learned:</b> ' + lessons.slice(0, 3).join(' ')
+      : '<b>Tip:</b> Get close to the target box, then stop moving. The shot locks when you hold it steady.';
+
+    $('pitch').innerHTML = lesson +
+      '<br><br>That is the actual job. A director calls it, you find it, you hold it steady. ' +
+      'It takes about three Sundays to feel natural.';
+
+    var hs = $('hiscore');
+    if (Arcade.qualifies(GAME_ID, st.score)) {
+      hs.innerHTML = Arcade.initialsHTML();
+      Arcade.wireInitials(hs, function (initials) {
+        Arcade.submit(GAME_ID, initials, st.score);
+        hs.innerHTML = Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+        paintPanels();
+      });
+    } else {
+      hs.innerHTML = Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+    }
+
+    show('results');
+    armIdle();
+  }
+
+  function row(label, val) {
+    return '<div><span>' + label + '</span><b>' + val + '</b></div>';
+  }
+  function pct(v) { return Math.round(v * 100) + '%'; }
+
+  // ---------------------------------------------------------------- input
+  var KEYMAP = {
+    ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down',
+    a:'left', d:'right', w:'up', s:'down',
+    '+':'in', '=':'in', '-':'out', '_':'out', q:'out', e:'in'
+  };
+
+  document.addEventListener('keydown', function (ev) {
+    var act = KEYMAP[ev.key];
+    if (act) { held[act] = true; ev.preventDefault(); markPad(act, true); }
+    if (ev.key === 'Enter' && $('attract').classList.contains('active')) begin();
+    if (ev.key === 'Enter' && $('results').classList.contains('active')) begin();
+  });
+  document.addEventListener('keyup', function (ev) {
+    var act = KEYMAP[ev.key];
+    if (act) { held[act] = false; markPad(act, false); }
+  });
+
+  function markPad(act, on) {
+    var b = document.querySelector('.pad[data-act="' + act + '"]');
+    if (b) b.classList.toggle('on', on);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.pad[data-act]'), function (b) {
+    var act = b.getAttribute('data-act');
+    function down(e) { e.preventDefault(); held[act] = true; b.classList.add('on'); }
+    function up(e)   { e.preventDefault(); held[act] = false; b.classList.remove('on'); }
+    b.addEventListener('pointerdown', down);
+    b.addEventListener('pointerup', up);
+    b.addEventListener('pointercancel', up);
+    b.addEventListener('pointerleave', up);
+  });
+
+  // Release everything if the window loses focus mid-hold.
+  window.addEventListener('blur', function () {
+    held = {};
+    Array.prototype.forEach.call(document.querySelectorAll('.pad'), function (b) {
+      b.classList.remove('on');
+    });
+  });
+
+  // ---------------------------------------------------------------- boot
+  function begin() {
+    var btn = $('startBtn');
+    btn.disabled = true;
+    btn.textContent = 'Starting camera…';
+    startCamera().then(function () {
+      btn.disabled = false;
+      btn.textContent = 'Take the Camera';
+      applyCam();
+      startRound();
+    });
+  }
+
+  $('startBtn').addEventListener('click', begin);
+  $('againBtn').addEventListener('click', function () {
+    if (!stream && !usingFallback) { begin(); return; }
+    startRound();
+  });
+
+  function paintPanels() {
+    $('panels').innerHTML =
+      Arcade.howTo({
+        title: 'HOW TO PLAY',
+        steps: [
+          'A shot gets called at the top of the screen — WIDE, CLOSE-UP, FRAME LEFT.',
+          'A gold dashed box shows the shot you were asked for. Move the camera until that box <b>lines up with the edges of the picture</b>.',
+          'Hold it still for a moment and the shot locks in. Smooth beats fast.'
+        ],
+        controls: 'Arrow keys, the on-screen arrows, or a plugged-in game controller.'
+      }) +
+      Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
+  }
+
+  buildFallbackScene();
+  Arcade.backdrop('assets/sanctuary-wide.jpg', function (url) {
+    if (!url) return;                 // no photo dropped in yet - drawn scene stands
+    photo.src = url;
+    photoReady = true;
+    if (usingFallback) applyFallbackLayer();   // swap the drawn scene for the photo
+    applyCam();
+  });
+  applyCam();
+  paintPanels();
+  armIdle();
+})();
+</script>
+</body>
+</html>

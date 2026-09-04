@@ -1,0 +1,277 @@
+<div class="search">
+  <input id="q" placeholder="Search playbooks: feedback, EQ, reverb, muddy, harsh..." />
+  <div class="pill"><span id="count">0</span> shown</div>
+</div>
+<div class="small" style="margin-top:8px;">
+  Tip: search by symptom (<span class="kbd">muddy</span>), by role (<span class="kbd">pastor</span>), or by effect (<span class="kbd">reverb</span>).
+</div>
+
+<hr/>
+
+<!-- SETUP & CONNECTION -->
+<div data-playbook data-hay="connect ethernet ip 10.0.0.2 x32 network xinfo health check setup">
+<details open>
+  <summary>Connect + Confirm Control</summary>
+  <div class="small">Goal: Your laptop can talk to the X32 over Ethernet (OSC).</div>
+  <ol>
+    <li>Plug laptop Ethernet into the same network as the X32.</li>
+    <li>Ensure your laptop IP is on the same subnet as the X32 (e.g., <span class="kbd">10.0.0.x</span> / <span class="kbd">255.255.255.0</span>).</li>
+    <li>Open the dashboard and hit <b>Health Check</b>.</li>
+    <li>If it fails, check: cable, switch, laptop IP, Wi-Fi interference.</li>
+  </ol>
+</details>
+</div>
+
+<div data-playbook data-hay="backup restore scene 99 safety net show export usb panic">
+<details>
+  <summary>Backup + Restore Points</summary>
+  <div class="small">Treat Scene 99 like a "known-good restore point."</div>
+  <ol>
+    <li><b>One-time:</b> Save your stable state into <b>Scene 99</b> named <span class="kbd">SAFETY_NET</span>.</li>
+    <li><b>Before changes:</b> Save current state to a scene or export Show to USB.</li>
+    <li><b>If something breaks:</b> Click <b>PANIC RESTORE</b> to recall Scene 99.</li>
+  </ol>
+</details>
+</div>
+
+<!-- EQ GUIDES -->
+<div data-playbook data-hay="eq equalizer muddy boomy boxy cut low frequency 300hz">
+<details>
+  <summary>EQ Fix: Muddy Sound</summary>
+  <div class="pills" style="margin-top:8px;">
+    <span class="pill">Common on vocals, guitars</span>
+  </div>
+  <div class="small"><b>What it sounds like:</b> Thick, unclear, "woolly" - hard to hear words clearly.</div>
+  <ol>
+    <li>Go to the <b>EQ tab</b> in the dashboard.</li>
+    <li>Select the channel and choose <b>"Muddy"</b> from Quick Fixes.</li>
+    <li>This cuts around <b>300Hz</b> with a moderate Q.</li>
+    <li>Listen - if still muddy, consider also enabling HPF at 100Hz.</li>
+  </ol>
+  <div class="small"><b>Why this works:</b> 200-400Hz is where mud accumulates, especially in small rooms.</div>
+</details>
+</div>
+
+<div data-playbook data-hay="eq equalizer harsh ear fatigue piercing cut high frequency 3khz">
+<details>
+  <summary>EQ Fix: Harsh Sound</summary>
+  <div class="pills" style="margin-top:8px;">
+    <span class="pill">Common on vocals, cymbals</span>
+  </div>
+  <div class="small"><b>What it sounds like:</b> Piercing, fatiguing, makes you want to turn it down.</div>
+  <ol>
+    <li>Go to the <b>EQ tab</b> and select the channel.</li>
+    <li>Choose <b>"Harsh"</b> from Quick Fixes.</li>
+    <li>This cuts around <b>2-4kHz</b> - the ear fatigue zone.</li>
+    <li>Be gentle - too much cut makes things dull.</li>
+  </ol>
+  <div class="small"><b>Why this works:</b> 2-4kHz is where the ear is most sensitive.</div>
+</details>
+</div>
+
+<div data-playbook data-hay="eq equalizer thin weak no body boost low frequency 200hz">
+<details>
+  <summary>EQ Fix: Thin Sound</summary>
+  <div class="pills" style="margin-top:8px;">
+    <span class="pill">Common on DI guitars, weak vocals</span>
+  </div>
+  <div class="small"><b>What it sounds like:</b> Lacking body, weak, "small" sounding.</div>
+  <ol>
+    <li>Go to the <b>EQ tab</b> and select the channel.</li>
+    <li>Choose <b>"Thin"</b> from Quick Fixes.</li>
+    <li>This boosts around <b>200Hz</b> to add body.</li>
+    <li>Don't overdo it - too much causes mud.</li>
+  </ol>
+</details>
+</div>
+
+<div data-playbook data-hay="eq equalizer sibilant ess sounds bright 5khz 6khz vocal">
+<details>
+  <summary>EQ Fix: Sibilant Vocals (Harsh S Sounds)</summary>
+  <div class="pills" style="margin-top:8px;">
+    <span class="pill">Common with condenser mics</span>
+  </div>
+  <div class="small"><b>What it sounds like:</b> "Sss" and "Ttt" sounds are piercing and spitty.</div>
+  <ol>
+    <li>Go to the <b>EQ tab</b> and select the vocal channel.</li>
+    <li>Choose <b>"Sibilant"</b> from Quick Fixes.</li>
+    <li>This cuts around <b>5-6kHz</b> with a narrow Q.</li>
+    <li>If it persists, consider adding a DeEsser in an FX slot.</li>
+  </ol>
+</details>
+</div>
+
+<div data-playbook data-hay="eq equalizer nasal honky telephone 1khz midrange">
+<details>
+  <summary>EQ Fix: Nasal/Honky Sound</summary>
+  <div class="small"><b>What it sounds like:</b> Like talking through your nose, or through a telephone.</div>
+  <ol>
+    <li>Go to the <b>EQ tab</b> and select the channel.</li>
+    <li>Choose <b>"Nasal"</b> from Quick Fixes.</li>
+    <li>This cuts around <b>800-1000Hz</b>.</li>
+  </ol>
+  <div class="small"><b>Why this works:</b> 800-1200Hz is the "telephone" frequency range.</div>
+</details>
+</div>
+
+<div data-playbook data-hay="hpf high pass filter rumble bass cut low enable">
+<details>
+  <summary>HPF: When and How to Use It</summary>
+  <div class="small"><b>What it does:</b> Removes frequencies below a set point (usually 80-120Hz).</div>
+  <div class="pills" style="margin-top:8px;">
+    <span class="pill good">Enable on all vocals</span>
+    <span class="pill good">Enable on guitars</span>
+    <span class="pill bad">Don't use on kick/bass</span>
+  </div>
+  <ol>
+    <li><b>Vocals:</b> HPF at 100-120Hz removes rumble and plosives.</li>
+    <li><b>Acoustic guitar:</b> HPF at 80Hz removes body resonance.</li>
+    <li><b>Electric guitar:</b> HPF at 100Hz removes amp hum.</li>
+    <li><b>Kick/Bass:</b> Leave HPF off or very low (30-40Hz) - you need the low end!</li>
+  </ol>
+</details>
+</div>
+
+<!-- EFFECTS GUIDES -->
+<div data-playbook data-hay="reverb hall plate room vocal effect wet dry">
+<details>
+  <summary>Effects: Choosing the Right Reverb</summary>
+  <div class="small">Reverb adds space and depth. Different types for different uses:</div>
+  <table style="width:100%;font-size:12px;margin-top:8px;">
+    <tr><td><b>Hall</b></td><td>Large space, 2-4 sec decay. Good for worship, ballads.</td></tr>
+    <tr><td><b>Plate</b></td><td>Smooth, bright. The go-to for vocals. 1-2 sec.</td></tr>
+    <tr><td><b>Room</b></td><td>Small, natural. Good for drums, subtle ambience. 0.5-1 sec.</td></tr>
+    <tr><td><b>Chamber</b></td><td>Warm, musical. Good for acoustic instruments.</td></tr>
+  </table>
+  <div class="small" style="margin-top:8px;"><b>Tip:</b> Use the FX presets in the Effects tab for good starting points.</div>
+</details>
+</div>
+
+<div data-playbook data-hay="delay echo tempo sync quarter eighth note timing">
+<details>
+  <summary>Effects: Setting Up Delay</summary>
+  <div class="small">Delay adds rhythmic interest. Sync it to the song tempo!</div>
+  <table style="width:100%;font-size:12px;margin-top:8px;">
+    <tr><th>Tempo (BPM)</th><th>Quarter Note</th><th>Eighth Note</th><th>Dotted Eighth</th></tr>
+    <tr><td>80</td><td>750ms</td><td>375ms</td><td>562ms</td></tr>
+    <tr><td>100</td><td>600ms</td><td>300ms</td><td>450ms</td></tr>
+    <tr><td>120</td><td>500ms</td><td>250ms</td><td>375ms</td></tr>
+    <tr><td>140</td><td>428ms</td><td>214ms</td><td>321ms</td></tr>
+  </table>
+  <ol style="margin-top:8px;">
+    <li>Determine the song tempo (ask the band or use a tap tempo app).</li>
+    <li>Set delay time from the table above.</li>
+    <li>Keep feedback low (2-3 repeats) for most worship uses.</li>
+    <li>Use high-cut on the delay to keep it from getting harsh.</li>
+  </ol>
+</details>
+</div>
+
+<div data-playbook data-hay="fx send return bus reverb delay how much level">
+<details>
+  <summary>Effects: How FX Sends Work</summary>
+  <div class="small">Understanding the FX bus system:</div>
+  <ol>
+    <li><b>FX Bus:</b> A dedicated bus that feeds an effect processor.</li>
+    <li><b>Send Level:</b> How much of each channel goes to the FX bus.</li>
+    <li><b>Return:</b> The processed effect comes back on the FX Return channel.</li>
+  </ol>
+  <div class="small" style="margin-top:8px;">
+    <b>Example:</b> To add reverb to vocals:
+    <ul>
+      <li>Reverb is loaded in FX Slot 1, fed by Bus 7</li>
+      <li>Increase the vocal channel's send to Bus 7</li>
+      <li>More send = more reverb on that vocal</li>
+    </ul>
+  </div>
+</details>
+</div>
+
+<!-- TROUBLESHOOTING -->
+<div data-playbook data-hay="feedback mic vocal vox squeal ring out stage monitor bus wedge">
+<details>
+  <summary>Troubleshoot: Feedback on a Vocal Mic</summary>
+  <div class="pills" style="margin-top:8px;">
+    <span class="pill warn">Most common in monitors</span>
+  </div>
+  <ol>
+    <li><b>Fast safe step:</b> Lower the monitor send a little.</li>
+    <li><b>Mute FX returns</b> temporarily (use Quick Ops tab).</li>
+    <li>Ensure <b>HPF</b> is enabled (100Hz for vocals).</li>
+    <li>Check mic position - don't aim at wedges.</li>
+    <li>If still ringing: use EQ to cut the ringing frequency.</li>
+  </ol>
+</details>
+</div>
+
+<div data-playbook data-hay="no sound bluetooth aux5 aux6 phone muted routing">
+<details>
+  <summary>Troubleshoot: No Sound from Bluetooth</summary>
+  <ol>
+    <li>Confirm the phone is connected and playing audio.</li>
+    <li>Check the Bluetooth channels (Aux 5/6) - unmuted, faders up.</li>
+    <li>Confirm routing to Main LR.</li>
+    <li>For livestream: check broadcast bus routing too.</li>
+  </ol>
+</details>
+</div>
+
+<div data-playbook data-hay="no sound computer aux1 aux3 usb l r playback">
+<details>
+  <summary>Troubleshoot: No Sound from Computer/USB</summary>
+  <ol>
+    <li>Check input source selection (USB vs Local).</li>
+    <li>Check mutes and faders on playback channels.</li>
+    <li>Confirm routing to Main LR.</li>
+    <li>Check USB/card routing in the X32 setup menu.</li>
+  </ol>
+</details>
+</div>
+
+<div data-playbook data-hay="livestream matrix broadcast sounds bad too quiet routing">
+<details>
+  <summary>Troubleshoot: Livestream Mix Problems</summary>
+  <ol>
+    <li>Identify: is livestream fed from a Bus or Matrix?</li>
+    <li>Check meters on that bus - is there signal?</li>
+    <li>Verify Pastor and Vocals are sent to the broadcast feed.</li>
+    <li>If quiet but meters look OK: check encoder/PC input gain.</li>
+  </ol>
+</details>
+</div>
+
+<!-- TRAINING -->
+<div data-playbook data-hay="training practice learn volunteer safe mode">
+<details>
+  <summary>Training: Using Training Mode</summary>
+  <div class="small">Training Mode lets you practice without affecting the actual mixer.</div>
+  <ol>
+    <li>Click <b>Enter Training Mode</b> on the left panel.</li>
+    <li>Try any operation - it will be logged but NOT sent to the X32.</li>
+    <li>Review the Action Log to see what would have happened.</li>
+    <li>Click <b>Exit Training Mode</b> when ready to make real changes.</li>
+  </ol>
+  <div class="small" style="margin-top:8px;"><b>Use this for:</b> New volunteer training, practicing EQ changes, learning the system.</div>
+</details>
+</div>
+
+<div data-playbook data-hay="checklist pre service setup sunday morning">
+<details>
+  <summary>Pre-Service Checklist</summary>
+  <div class="small">Run through this before each service:</div>
+  <ol>
+    <li>[ ] Health Check - verify X32 connection</li>
+    <li>[ ] Rebuild Labels - set channel names</li>
+    <li>[ ] Check Pastor mic - unmuted, fader at unity</li>
+    <li>[ ] Check worship vocals - all unmuted</li>
+    <li>[ ] Check playback channels - Bluetooth, computer</li>
+    <li>[ ] Verify monitors - check with band</li>
+    <li>[ ] Verify broadcast - check livestream feed</li>
+    <li>[ ] Main fader at unity, not muted</li>
+  </ol>
+</details>
+</div>
+
+<div class="footer" style="margin-top:20px;">
+  This library is designed to be expanded. Search for topics or browse the guides above.
+</div>

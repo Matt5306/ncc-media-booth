@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X32 Sound Academy - Interactive Learning</title>
+  <style>
+    :root {
+      --bg: #0a0e14;
+      --panel: #111820;
+      --panel2: #1a2332;
+      --accent: #00d4ff;
+      --accent2: #7c3aed;
+      --gold: #ffd700;
+      --green: #22c55e;
+      --red: #ef4444;
+      --text: #e8edf4;
+      --dim: #8892a2;
+      --border: #2a3544;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0a0e14 0%, #111820 50%, #0a0e14 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top XP Bar */
+    .xp-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--border);
+      z-index: 1000;
+    }
+    .xp-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.5s ease;
+      box-shadow: 0 0 20px var(--accent);
+    }
+
+    /* Header */
+    .header {
+      padding: 20px;
+      background: rgba(17, 24, 32, 0.95);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 4px;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .logo-text h1 { font-size: 20px; letter-spacing: 1px; }
+    .logo-text span { font-size: 12px; color: var(--dim); }
+
+    .user-stats {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .stat-box {
+      text-align: center;
+      padding: 8px 16px;
+      background: var(--panel);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: bold;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-label { font-size: 11px; color: var(--dim); text-transform: uppercase; }
+
+    .level-badge {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--gold), #ff8c00);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #000;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    .level-badge:hover { transform: scale(1.1); }
+
+    /* Main Layout */
+    .main {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: calc(100vh - 100px);
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .sidebar h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+    .module-list { list-style: none; }
+    .module-item {
+      padding: 12px 16px;
+      margin: 4px 0;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .module-item:hover { background: var(--panel2); }
+    .module-item.active {
+      background: linear-gradient(90deg, rgba(0,212,255,0.2), rgba(124,58,237,0.2));
+      border: 1px solid var(--accent);
+    }
+    .module-item.completed::after {
+      content: '✓';
+      position: absolute;
+      right: 12px;
+      color: var(--green);
+      font-weight: bold;
+    }
+    .module-item.locked { opacity: 0.5; cursor: not-allowed; }
+    .module-item.locked::before { content: '🔒'; margin-right: 4px; }
+    .module-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .module-info { flex: 1; }
+    .module-title { font-size: 14px; font-weight: 500; }
+    .module-xp { font-size: 11px; color: var(--accent); }
+
+    /* Content Area */
+    .content {
+      padding: 30px;
+      overflow-y: auto;
+    }
+
+    /* Lesson Cards */
+    .lesson-header {
+      margin-bottom: 30px;
+    }
+    .lesson-header h2 {
+      font-size: 32px;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, var(--text), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .lesson-meta {
+      display: flex;
+      gap: 16px;
+      color: var(--dim);
+      font-size: 14px;
+    }
+    .lesson-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* Interactive Cards */
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .card h3 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Info Boxes */
+    .info-box {
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin: 16px 0;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .info-box.tip {
+      background: rgba(34, 197, 94, 0.1);
+      border-left: 4px solid var(--green);
+    }
+    .info-box.warning {
+      background: rgba(255, 215, 0, 0.1);
+      border-left: 4px solid var(--gold);
+    }
+    .info-box.danger {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 4px solid var(--red);
+    }
+    .info-box-icon { font-size: 24px; }
+    .info-box-content { flex: 1; }
+    .info-box-title { font-weight: bold; margin-bottom: 4px; }
+
+    /* Interactive Frequency Visualizer */
+    .freq-visualizer {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .freq-bar-container {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      height: 120px;
+      gap: 4px;
+    }
+    .freq-bar {
+      flex: 1;
+      background: linear-gradient(to top, var(--accent), var(--accent2));
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      min-width: 30px;
+    }
+    .freq-bar:hover {
+      filter: brightness(1.3);
+      transform: scaleY(1.1);
+      transform-origin: bottom;
+    }
+    .freq-bar.active {
+      background: linear-gradient(to top, var(--gold), #ff8c00);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    .freq-label {
+      text-align: center;
+      font-size: 11px;
+      color: var(--dim);
+      margin-top: 8px;
+    }
+    .freq-info {
+      text-align: center;
+      padding: 16px;
+      background: var(--panel2);
+      border-radius: 8px;
+      margin-top: 16px;
+      min-height: 80px;
+    }
+
+    /* Quiz Styles */
+    .quiz-container {
+      background: linear-gradient(135deg, var(--panel), var(--panel2));
+      border-radius: 16px;
+      padding: 24px;
+      border: 2px solid var(--border);
+    }
+    .quiz-question {
+      font-size: 18px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .quiz-options { display: grid; gap: 12px; }
+    .quiz-option {
+      padding: 16px 20px;
+      background: var(--bg);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .quiz-option:hover {
+      border-color: var(--accent);
+      background: rgba(0, 212, 255, 0.1);
+    }
+    .quiz-option.selected {
+      border-color: var(--accent);
+      background: rgba(0, 212, 255, 0.2);
+    }
+    .quiz-option.correct {
+      border-color: var(--green);
+      background: rgba(34, 197, 94, 0.2);
+    }
+    .quiz-option.incorrect {
+      border-color: var(--red);
+      background: rgba(239, 68, 68, 0.2);
+    }
+    .quiz-option-letter {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--panel);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    .quiz-feedback {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      display: none;
+    }
+    .quiz-feedback.show { display: block; }
+    .quiz-feedback.correct {
+      background: rgba(34, 197, 94, 0.2);
+      border: 1px solid var(--green);
+    }
+    .quiz-feedback.incorrect {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--red);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #fff;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+    }
+    .btn-secondary {
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--panel); }
+    .btn-success {
+      background: linear-gradient(90deg, var(--green), #16a34a);
+      color: #fff;
+    }
+
+    /* Progress Steps */
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      margin: 30px 0;
+      position: relative;
+    }
+    .progress-steps::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--border);
+      z-index: 0;
+    }
+    .progress-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+    }
+    .step-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--panel);
+      border: 3px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-bottom: 8px;
+      transition: all 0.3s;
+    }
+    .progress-step.completed .step-circle {
+      background: var(--green);
+      border-color: var(--green);
+    }
+    .progress-step.active .step-circle {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent);
+    }
+    .step-label { font-size: 12px; color: var(--dim); }
+
+    /* Scenario Simulator */
+    .scenario {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border-radius: 16px;
+      padding: 24px;
+      border: 2px solid var(--accent);
+      position: relative;
+      overflow: hidden;
+    }
+    .scenario::before {
+      content: '🎬 SCENARIO';
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: var(--accent);
+      color: #000;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: bold;
+      border-radius: 0 14px 0 8px;
+    }
+    .scenario-text {
+      font-size: 16px;
+      line-height: 1.7;
+      margin-bottom: 20px;
+      padding-top: 10px;
+    }
+    .scenario-choices { display: grid; gap: 12px; }
+    .scenario-choice {
+      padding: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .scenario-choice:hover {
+      border-color: var(--accent);
+      transform: translateX(8px);
+    }
+
+    /* Achievement Popup */
+    .achievement-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: linear-gradient(135deg, var(--panel), var(--panel2));
+      border: 3px solid var(--gold);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      z-index: 2000;
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .achievement-popup.show { transform: translate(-50%, -50%) scale(1); }
+    .achievement-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      animation: bounce 0.6s infinite alternate;
+    }
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+    .achievement-title {
+      font-size: 24px;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .achievement-xp {
+      font-size: 18px;
+      color: var(--accent);
+    }
+    .achievement-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .achievement-overlay.show { opacity: 1; pointer-events: auto; }
+
+    /* Drag and Drop Exercise */
+    .dnd-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .dnd-items, .dnd-targets {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 200px;
+    }
+    .dnd-item {
+      padding: 12px 16px;
+      background: linear-gradient(135deg, var(--panel), var(--panel2));
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      margin: 8px 0;
+      cursor: grab;
+      transition: all 0.2s;
+    }
+    .dnd-item:active { cursor: grabbing; }
+    .dnd-item.dragging { opacity: 0.5; transform: scale(1.05); }
+    .dnd-target {
+      padding: 16px;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      margin: 8px 0;
+      min-height: 50px;
+      transition: all 0.2s;
+    }
+    .dnd-target.over {
+      border-color: var(--accent);
+      background: rgba(0, 212, 255, 0.1);
+    }
+    .dnd-target.correct { border-color: var(--green); border-style: solid; }
+    .dnd-target.incorrect { border-color: var(--red); border-style: solid; }
+
+    /* Animated Counter */
+    .counter {
+      font-size: 48px;
+      font-weight: bold;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Streak Fire */
+    .streak-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: linear-gradient(90deg, rgba(255,100,0,0.2), rgba(255,200,0,0.2));
+      border-radius: 20px;
+      border: 1px solid rgba(255,150,0,0.5);
+    }
+    .streak-fire { font-size: 20px; animation: flicker 0.5s infinite alternate; }
+    @keyframes flicker {
+      from { transform: scale(1) rotate(-5deg); }
+      to { transform: scale(1.1) rotate(5deg); }
+    }
+    .streak-count { font-weight: bold; color: #ff9500; }
+
+    /* Keyboard Shortcuts Guide */
+    .kbd {
+      display: inline-block;
+      padding: 4px 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      box-shadow: 0 2px 0 var(--border);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .main { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .header { flex-direction: column; gap: 16px; }
+      .user-stats { width: 100%; justify-content: space-around; }
+    }
+
+    /* Animations */
+    .fade-in {
+      animation: fadeIn 0.5s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .glow {
+      box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(0,212,255,0.3);
+    }
+  </style>
+</head>
+<body>
+  <!-- XP Progress Bar -->
+  <div class="xp-bar-container">
+    <div class="xp-bar" id="xpBar" style="width: 0%"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">🎛️</div>
+      <div class="logo-text">
+        <h1>X32 SOUND ACADEMY</h1>
+        <span>Interactive Learning Hub</span>
+      </div>
+    </div>
+    <div class="user-stats">
+      <div class="streak-container">
+        <span class="streak-fire">🔥</span>
+        <span class="streak-count" id="streakCount">0</span>
+        <span style="font-size:12px;color:var(--dim)">day streak</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="totalXp">0</div>
+        <div class="stat-label">Total XP</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="lessonsCompleted">0/12</div>
+        <div class="stat-label">Lessons</div>
+      </div>
+      <div class="level-badge" id="levelBadge" title="Click for achievements">1</div>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h3>🎓 Learning Path</h3>
+      <ul class="module-list" id="moduleList">
+        <li class="module-item active" data-module="intro">
+          <div class="module-icon" style="background:linear-gradient(135deg,#22c55e,#16a34a)">🎯</div>
+          <div class="module-info">
+            <div class="module-title">Getting Started</div>
+            <div class="module-xp">+50 XP</div>
+          </div>
+        </li>
+        <li class="module-item" data-module="signal-flow">
+          <div class="module-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">🔀</div>
+          <div class="module-info">
+            <div class="module-title">Signal Flow</div>
+            <div class="module-xp">+75 XP</div>
+          </div>
+        </li>
+        <li class="module-item" data-module="frequency">
+          <div class="module-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706)">📊</div>
+          <div class="module-info">
+            <div class="module-title">Frequency Basics</div>
+            <div class="module-xp">+100 XP</div>
+          </div>
+        </li>
+        <li class="module-item" data-module="eq">
+          <div class="module-icon" style="background:linear-gradient(135deg,#ec4899,#be185d)">🎚️</div>
+          <div class="module-info">
+            <div class="module-title">EQ Mastery</div>
+            <div class="module-xp">+150 XP</div>
+          </div>
+        </li>
+        <li class="module-item" data-module="dcas">
+          <div class="module-icon" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)">🎛️</div>
+          <div class="module-info">
+            <div class="module-title">DCA Groups</div>
+            <div class="module-xp">+100 XP</div>
+          </div>
+        </li>
+        <li class="module-item" data-module="monitors">
+          <div class="module-icon" style="background:linear-gradient(135deg,#06b6d4,#0891b2)">🎧</div>
+          <div class="module-info">
+            <div class="module-title">Stage Monitors</div>
+            <div class="module-xp">+125 XP</div>
+          </div>
+        </li>
+        <li class="module-item" data-module="feedback">
+          <div class="module-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626)">🔊</div>
+          <div class="module-info">
+            <div class="module-title">Fighting Feedback</div>
+            <div class="module-xp">+150 XP</div>
+          </div>
+        </li>
+        <li class="module-item locked" data-module="scenarios">
+          <div class="module-icon" style="background:linear-gradient(135deg,#64748b,#475569)">🎬</div>
+          <div class="module-info">
+            <div class="module-title">Real Scenarios</div>
+            <div class="module-xp">+200 XP</div>
+          </div>
+        </li>
+      </ul>
+
+      <h3 style="margin-top:30px">🏆 Achievements</h3>
+      <div id="achievementsList" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;">
+        <div class="achievement-mini" title="First Lesson" style="opacity:0.3">📚</div>
+        <div class="achievement-mini" title="Quiz Master" style="opacity:0.3">🧠</div>
+        <div class="achievement-mini" title="Frequency Expert" style="opacity:0.3">📊</div>
+        <div class="achievement-mini" title="EQ Wizard" style="opacity:0.3">🎚️</div>
+        <div class="achievement-mini" title="DCA Pro" style="opacity:0.3">🎛️</div>
+        <div class="achievement-mini" title="Monitor Master" style="opacity:0.3">🎧</div>
+        <div class="achievement-mini" title="Feedback Fighter" style="opacity:0.3">🔊</div>
+        <div class="achievement-mini" title="Sound Engineer" style="opacity:0.3">👑</div>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="content" id="contentArea">
+      <!-- Content loaded dynamically -->
+    </main>
+  </div>
+
+  <!-- Achievement Popup -->
+  <div class="achievement-overlay" id="achievementOverlay"></div>
+  <div class="achievement-popup" id="achievementPopup">
+    <div class="achievement-icon" id="popupIcon">🏆</div>
+    <div class="achievement-title" id="popupTitle">Achievement Unlocked!</div>
+    <div class="achievement-desc" id="popupDesc"></div>
+    <div class="achievement-xp" id="popupXp">+100 XP</div>
+    <button class="btn btn-primary" style="margin-top:20px" onclick="closeAchievement()">Awesome!</button>
+  </div>
+
+  <script>
+    // ========================================
+    // STATE MANAGEMENT
+    // ========================================
+    let state = {
+      xp: 0,
+      level: 1,
+      streak: 0,
+      currentModule: 'intro',
+      completedModules: [],
+      achievements: [],
+      quizAnswers: {},
+      lastVisit: null
+    };
+
+    // Load saved state
+    function loadState() {
+      const saved = localStorage.getItem('x32Academy');
+      if (saved) {
+        state = { ...state, ...JSON.parse(saved) };
+      }
+
+      // Check streak
+      const today = new Date().toDateString();
+      if (state.lastVisit) {
+        const lastDate = new Date(state.lastVisit);
+        const diffDays = Math.floor((new Date() - lastDate) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+          state.streak++;
+        } else if (diffDays > 1) {
+          state.streak = 1;
+        }
+      } else {
+        state.streak = 1;
+      }
+      state.lastVisit = today;
+      saveState();
+      updateUI();
+    }
+
+    function saveState() {
+      localStorage.setItem('x32Academy', JSON.stringify(state));
+    }
+
+    function updateUI() {
+      document.getElementById('totalXp').textContent = state.xp;
+      document.getElementById('levelBadge').textContent = state.level;
+      document.getElementById('streakCount').textContent = state.streak;
+      document.getElementById('lessonsCompleted').textContent =
+        `${state.completedModules.length}/8`;
+
+      // XP Bar (100 XP per level)
+      const xpInLevel = state.xp % 100;
+      document.getElementById('xpBar').style.width = `${xpInLevel}%`;
+
+      // Update sidebar
+      document.querySelectorAll('.module-item').forEach(item => {
+        const module = item.dataset.module;
+        item.classList.remove('active', 'completed');
+        if (module === state.currentModule) item.classList.add('active');
+        if (state.completedModules.includes(module)) item.classList.add('completed');
+      });
+
+      // Update achievements
+      const achList = document.getElementById('achievementsList');
+      achList.querySelectorAll('.achievement-mini').forEach((el, i) => {
+        el.style.opacity = state.achievements.includes(i) ? '1' : '0.3';
+        el.style.fontSize = state.achievements.includes(i) ? '24px' : '20px';
+      });
+    }
+
+    function addXP(amount) {
+      const oldLevel = state.level;
+      state.xp += amount;
+      state.level = Math.floor(state.xp / 100) + 1;
+      saveState();
+      updateUI();
+
+      // Animate XP gain
+      showToast(`+${amount} XP`);
+
+      if (state.level > oldLevel) {
+        showAchievement('🎉', 'Level Up!', `You reached Level ${state.level}!`, 50);
+      }
+    }
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed; bottom: 30px; right: 30px;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+        color: #fff; padding: 12px 24px; border-radius: 10px;
+        font-weight: bold; z-index: 3000; animation: fadeIn 0.3s;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2000);
+    }
+
+    function showAchievement(icon, title, desc, xp = 0) {
+      document.getElementById('popupIcon').textContent = icon;
+      document.getElementById('popupTitle').textContent = title;
+      document.getElementById('popupDesc').textContent = desc;
+      document.getElementById('popupXp').textContent = xp ? `+${xp} XP` : '';
+      document.getElementById('achievementOverlay').classList.add('show');
+      document.getElementById('achievementPopup').classList.add('show');
+      if (xp) addXP(xp);
+    }
+
+    function closeAchievement() {
+      document.getElementById('achievementOverlay').classList.remove('show');
+      document.getElementById('achievementPopup').classList.remove('show');
+    }
+
+    function unlockAchievement(index, icon, title, desc) {
+      if (!state.achievements.includes(index)) {
+        state.achievements.push(index);
+        saveState();
+        showAchievement(icon, title, desc, 100);
+        updateUI();
+      }
+    }
+
+    function completeModule(moduleName) {
+      if (!state.completedModules.includes(moduleName)) {
+        state.completedModules.push(moduleName);
+        saveState();
+
+        // Unlock next module
+        const modules = ['intro', 'signal-flow', 'frequency', 'eq', 'dcas', 'monitors', 'feedback', 'scenarios'];
+        const currentIdx = modules.indexOf(moduleName);
+        if (currentIdx < modules.length - 1) {
+          const nextModule = document.querySelector(`[data-module="${modules[currentIdx + 1]}"]`);
+          if (nextModule) nextModule.classList.remove('locked');
+        }
+
+        updateUI();
+      }
+    }
+
+    // ========================================
+    // LESSON CONTENT
+    // ========================================
+    const lessons = {
+      'intro': {
+        title: 'Getting Started',
+        duration: '5 min',
+        xp: 50,
+        content: `
+          <div class="lesson-header">
+            <h2>Welcome to Sound Academy! 🎉</h2>
+            <div class="lesson-meta">
+              <span>⏱️ 5 min</span>
+              <span>🎯 Beginner</span>
+              <span>💎 50 XP</span>
+            </div>
+          </div>
+
+          <div class="progress-steps">
+            <div class="progress-step active">
+              <div class="step-circle">1</div>
+              <div class="step-label">Intro</div>
+            </div>
+            <div class="progress-step">
+              <div class="step-circle">2</div>
+              <div class="step-label">Basics</div>
+            </div>
+            <div class="progress-step">
+              <div class="step-circle">3</div>
+              <div class="step-label">Quiz</div>
+            </div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>🎯 What You'll Learn</h3>
+            <p>By the end of this course, you'll be able to:</p>
+            <ul style="margin:16px 0 0 20px;line-height:2">
+              <li>Understand how sound flows through the X32</li>
+              <li>Know which frequencies cause common problems</li>
+              <li>Fix muddy, harsh, or thin sound with EQ</li>
+              <li>Manage stage monitors without causing feedback</li>
+              <li>Handle common service emergencies with confidence</li>
+            </ul>
+          </div>
+
+          <div class="info-box tip">
+            <div class="info-box-icon">💡</div>
+            <div class="info-box-content">
+              <div class="info-box-title">Pro Tip</div>
+              <div>Complete lessons in order - they build on each other! Each lesson unlocks the next.</div>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.2s">
+            <h3>🎛️ The X32 at a Glance</h3>
+            <p>The Behringer X32 is a 32-channel digital mixer. Think of it as the brain of your sound system:</p>
+
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px">
+              <div style="text-align:center;padding:20px;background:var(--bg);border-radius:12px">
+                <div style="font-size:32px;margin-bottom:8px">🎤</div>
+                <div style="font-weight:bold">32 Inputs</div>
+                <div style="font-size:12px;color:var(--dim)">Mics & instruments</div>
+              </div>
+              <div style="text-align:center;padding:20px;background:var(--bg);border-radius:12px">
+                <div style="font-size:32px;margin-bottom:8px">🔊</div>
+                <div style="font-weight:bold">16 Mix Buses</div>
+                <div style="font-size:12px;color:var(--dim)">Monitors & aux</div>
+              </div>
+              <div style="text-align:center;padding:20px;background:var(--bg);border-radius:12px">
+                <div style="font-size:32px;margin-bottom:8px">🎚️</div>
+                <div style="font-weight:bold">8 DCAs</div>
+                <div style="font-size:12px;color:var(--dim)">Group controls</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.4s">
+            <h3>🧪 Quick Knowledge Check</h3>
+            <div class="quiz-container">
+              <div class="quiz-question">What does DCA stand for?</div>
+              <div class="quiz-options" id="quiz1">
+                <div class="quiz-option" data-answer="a" onclick="checkQuiz('intro-1', 'a', 'b')">
+                  <div class="quiz-option-letter">A</div>
+                  <div>Direct Channel Assignment</div>
+                </div>
+                <div class="quiz-option" data-answer="b" onclick="checkQuiz('intro-1', 'b', 'b')">
+                  <div class="quiz-option-letter">B</div>
+                  <div>Digitally Controlled Amplifier</div>
+                </div>
+                <div class="quiz-option" data-answer="c" onclick="checkQuiz('intro-1', 'c', 'b')">
+                  <div class="quiz-option-letter">C</div>
+                  <div>Dynamic Compression Array</div>
+                </div>
+              </div>
+              <div class="quiz-feedback" id="feedback-intro-1"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:30px">
+            <button class="btn btn-success" onclick="completeAndNext('intro', 'signal-flow')">
+              Complete & Continue →
+            </button>
+          </div>
+        `
+      },
+
+      'frequency': {
+        title: 'Frequency Basics',
+        duration: '10 min',
+        xp: 100,
+        content: `
+          <div class="lesson-header">
+            <h2>Understanding Frequencies 📊</h2>
+            <div class="lesson-meta">
+              <span>⏱️ 10 min</span>
+              <span>🎯 Essential</span>
+              <span>💎 100 XP</span>
+            </div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>🎵 What is Frequency?</h3>
+            <p>Frequency is how fast a sound wave vibrates, measured in <strong>Hertz (Hz)</strong>.</p>
+            <ul style="margin:16px 0 0 20px;line-height:2">
+              <li><strong>Low frequencies</strong> (20-250 Hz) = Bass, rumble, thump</li>
+              <li><strong>Mid frequencies</strong> (250 Hz - 4 kHz) = Voice, instruments, body</li>
+              <li><strong>High frequencies</strong> (4-20 kHz) = Brightness, air, sizzle</li>
+            </ul>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.2s">
+            <h3>🎹 Interactive Frequency Explorer</h3>
+            <p>Click on each frequency band to learn what it sounds like:</p>
+
+            <div class="freq-visualizer">
+              <div class="freq-bar-container">
+                <div class="freq-bar" style="height:40%" data-freq="sub" onclick="selectFreq(this, 'sub')"></div>
+                <div class="freq-bar" style="height:55%" data-freq="bass" onclick="selectFreq(this, 'bass')"></div>
+                <div class="freq-bar" style="height:70%" data-freq="lowmid" onclick="selectFreq(this, 'lowmid')"></div>
+                <div class="freq-bar" style="height:85%" data-freq="mid" onclick="selectFreq(this, 'mid')"></div>
+                <div class="freq-bar" style="height:75%" data-freq="highmid" onclick="selectFreq(this, 'highmid')"></div>
+                <div class="freq-bar" style="height:60%" data-freq="presence" onclick="selectFreq(this, 'presence')"></div>
+                <div class="freq-bar" style="height:45%" data-freq="air" onclick="selectFreq(this, 'air')"></div>
+              </div>
+              <div style="display:flex;justify-content:space-around;margin-top:8px">
+                <div class="freq-label">20-60Hz<br>Sub</div>
+                <div class="freq-label">60-250Hz<br>Bass</div>
+                <div class="freq-label">250-500Hz<br>Low Mid</div>
+                <div class="freq-label">500-2kHz<br>Mid</div>
+                <div class="freq-label">2-4kHz<br>Hi Mid</div>
+                <div class="freq-label">4-6kHz<br>Presence</div>
+                <div class="freq-label">6-20kHz<br>Air</div>
+              </div>
+              <div class="freq-info" id="freqInfo">
+                <div style="color:var(--dim)">👆 Click a frequency band to explore</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.4s">
+            <h3>🔧 Common Problem Frequencies</h3>
+            <p>Memorize these - they're the most common issues you'll fix:</p>
+
+            <div style="display:grid;gap:12px;margin-top:16px">
+              <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg);border-radius:12px;border-left:4px solid #ef4444">
+                <div style="font-size:24px">🐘</div>
+                <div>
+                  <div style="font-weight:bold">250-400 Hz = "Muddy"</div>
+                  <div style="font-size:13px;color:var(--dim)">Sounds thick, unclear, like talking through a blanket</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg);border-radius:12px;border-left:4px solid #f59e0b">
+                <div style="font-size:24px">👃</div>
+                <div>
+                  <div style="font-weight:bold">800 Hz - 1 kHz = "Nasal"</div>
+                  <div style="font-size:13px;color:var(--dim)">Sounds honky, like talking through your nose</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg);border-radius:12px;border-left:4px solid #eab308">
+                <div style="font-size:24px">🗡️</div>
+                <div>
+                  <div style="font-weight:bold">2-4 kHz = "Harsh"</div>
+                  <div style="font-size:13px;color:var(--dim)">Sounds piercing, fatiguing, almost painful</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--bg);border-radius:12px;border-left:4px solid #22c55e">
+                <div style="font-size:24px">🐍</div>
+                <div>
+                  <div style="font-weight:bold">5-8 kHz = "Sibilant"</div>
+                  <div style="font-size:13px;color:var(--dim)">Excessive "S" and "T" sounds</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.6s">
+            <h3>🧪 Frequency Quiz</h3>
+            <div class="quiz-container">
+              <div class="quiz-question">A vocal sounds "honky" and nasal. What frequency range should you cut?</div>
+              <div class="quiz-options" id="quiz-freq">
+                <div class="quiz-option" onclick="checkQuiz('freq-1', 'a', 'c')">
+                  <div class="quiz-option-letter">A</div>
+                  <div>200-300 Hz</div>
+                </div>
+                <div class="quiz-option" onclick="checkQuiz('freq-1', 'b', 'c')">
+                  <div class="quiz-option-letter">B</div>
+                  <div>3-4 kHz</div>
+                </div>
+                <div class="quiz-option" onclick="checkQuiz('freq-1', 'c', 'c')">
+                  <div class="quiz-option-letter">C</div>
+                  <div>800 Hz - 1 kHz</div>
+                </div>
+                <div class="quiz-option" onclick="checkQuiz('freq-1', 'd', 'c')">
+                  <div class="quiz-option-letter">D</div>
+                  <div>6-8 kHz</div>
+                </div>
+              </div>
+              <div class="quiz-feedback" id="feedback-freq-1"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:30px">
+            <button class="btn btn-success" onclick="completeAndNext('frequency', 'eq')">
+              Complete & Continue →
+            </button>
+          </div>
+        `
+      },
+
+      'signal-flow': {
+        title: 'Signal Flow',
+        duration: '8 min',
+        xp: 75,
+        content: `
+          <div class="lesson-header">
+            <h2>Understanding Signal Flow 🔀</h2>
+            <div class="lesson-meta">
+              <span>⏱️ 8 min</span>
+              <span>🎯 Foundation</span>
+              <span>💎 75 XP</span>
+            </div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>🛤️ The Path of Sound</h3>
+            <p>Every sound in your system follows this path. Understanding it is <strong>essential</strong> for troubleshooting.</p>
+
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:20px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:50px;height:50px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px">🎤</div>
+                <div style="flex:1">
+                  <div style="font-weight:bold">1. INPUT</div>
+                  <div style="font-size:13px;color:var(--dim)">Microphone, instrument, or line-level source</div>
+                </div>
+              </div>
+              <div style="margin-left:25px;width:2px;height:20px;background:var(--border)"></div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:50px;height:50px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px">🎚️</div>
+                <div style="flex:1">
+                  <div style="font-weight:bold">2. PREAMP (Gain)</div>
+                  <div style="font-size:13px;color:var(--dim)">Amplifies weak signal to usable level</div>
+                </div>
+              </div>
+              <div style="margin-left:25px;width:2px;height:20px;background:var(--border)"></div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:50px;height:50px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px">📊</div>
+                <div style="flex:1">
+                  <div style="font-weight:bold">3. EQ & DYNAMICS</div>
+                  <div style="font-size:13px;color:var(--dim)">Shape tone, control dynamics (gate, comp)</div>
+                </div>
+              </div>
+              <div style="margin-left:25px;width:2px;height:20px;background:var(--border)"></div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:50px;height:50px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px">🎛️</div>
+                <div style="flex:1">
+                  <div style="font-weight:bold">4. FADER</div>
+                  <div style="font-size:13px;color:var(--dim)">Your main volume control</div>
+                </div>
+              </div>
+              <div style="margin-left:25px;width:2px;height:20px;background:var(--border)"></div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:50px;height:50px;background:linear-gradient(135deg,#ec4899,#be185d);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px">🔀</div>
+                <div style="flex:1">
+                  <div style="font-weight:bold">5. ROUTING</div>
+                  <div style="font-size:13px;color:var(--dim)">Where it goes: Main, Bus, Matrix, etc.</div>
+                </div>
+              </div>
+              <div style="margin-left:25px;width:2px;height:20px;background:var(--border)"></div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:50px;height:50px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:24px">🔊</div>
+                <div style="flex:1">
+                  <div style="font-weight:bold">6. OUTPUT</div>
+                  <div style="font-size:13px;color:var(--dim)">To speakers, monitors, broadcast, recording</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-box warning">
+            <div class="info-box-icon">⚠️</div>
+            <div class="info-box-content">
+              <div class="info-box-title">The Golden Rule</div>
+              <div>When troubleshooting "no sound," trace the signal path from INPUT to OUTPUT. The problem is always somewhere along this chain!</div>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.4s">
+            <h3>🧪 Signal Flow Quiz</h3>
+            <div class="quiz-container">
+              <div class="quiz-question">You raise the channel fader but get no sound. The meter shows signal at the input. Where's the problem likely to be?</div>
+              <div class="quiz-options">
+                <div class="quiz-option" onclick="checkQuiz('signal-1', 'a', 'b')">
+                  <div class="quiz-option-letter">A</div>
+                  <div>The microphone is broken</div>
+                </div>
+                <div class="quiz-option" onclick="checkQuiz('signal-1', 'b', 'b')">
+                  <div class="quiz-option-letter">B</div>
+                  <div>The channel isn't routed to Main or is muted</div>
+                </div>
+                <div class="quiz-option" onclick="checkQuiz('signal-1', 'c', 'b')">
+                  <div class="quiz-option-letter">C</div>
+                  <div>The EQ is cutting all frequencies</div>
+                </div>
+              </div>
+              <div class="quiz-feedback" id="feedback-signal-1"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:30px">
+            <button class="btn btn-success" onclick="completeAndNext('signal-flow', 'frequency')">
+              Complete & Continue →
+            </button>
+          </div>
+        `
+      },
+
+      'feedback': {
+        title: 'Fighting Feedback',
+        duration: '12 min',
+        xp: 150,
+        content: `
+          <div class="lesson-header">
+            <h2>Fighting Feedback 🔊</h2>
+            <div class="lesson-meta">
+              <span>⏱️ 12 min</span>
+              <span>🎯 Critical Skill</span>
+              <span>💎 150 XP</span>
+            </div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>😱 What is Feedback?</h3>
+            <p>Feedback happens when sound from a speaker enters a microphone and gets amplified again... and again... creating that awful howling screech.</p>
+
+            <div style="background:var(--bg);border-radius:12px;padding:20px;margin-top:16px;text-align:center">
+              <div style="font-size:48px;margin-bottom:16px">🎤 → 🔊 → 🎤 → 🔊 → 💥</div>
+              <div style="color:var(--dim)">The feedback loop: Sound goes in circles, getting louder each time</div>
+            </div>
+          </div>
+
+          <div class="info-box danger">
+            <div class="info-box-icon">🚨</div>
+            <div class="info-box-content">
+              <div class="info-box-title">Emergency Feedback Response</div>
+              <div>If feedback happens during service: <strong>Pull down the channel fader or DCA FIRST</strong>, then figure out which mic caused it. Don't panic!</div>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.2s">
+            <h3>🎯 The 4 Steps to Stop Feedback</h3>
+            <div style="display:grid;gap:16px;margin-top:16px">
+              <div style="display:flex;gap:16px;padding:16px;background:var(--bg);border-radius:12px">
+                <div style="width:40px;height:40px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0">1</div>
+                <div>
+                  <div style="font-weight:bold">Pull Down the Fader</div>
+                  <div style="font-size:13px;color:var(--dim)">Stop the feedback immediately by reducing the offending channel</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:16px;padding:16px;background:var(--bg);border-radius:12px">
+                <div style="width:40px;height:40px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0">2</div>
+                <div>
+                  <div style="font-weight:bold">Identify the Frequency</div>
+                  <div style="font-size:13px;color:var(--dim)">Low rumble? Mid honk? High screech? Each has different causes.</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:16px;padding:16px;background:var(--bg);border-radius:12px">
+                <div style="width:40px;height:40px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0">3</div>
+                <div>
+                  <div style="font-weight:bold">Apply a Fix</div>
+                  <div style="font-size:13px;color:var(--dim)">Use EQ notch, enable HPF, or reduce monitor level</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:16px;padding:16px;background:var(--bg);border-radius:12px">
+                <div style="width:40px;height:40px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;flex-shrink:0">4</div>
+                <div>
+                  <div style="font-weight:bold">Slowly Restore</div>
+                  <div style="font-size:13px;color:var(--dim)">Bring the fader back up carefully, listening for the feedback to return</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scenario">
+            <div class="scenario-text">
+              <strong>🎬 Scenario:</strong> During worship, you hear a low rumbling feedback starting. The worship leader is standing near a floor monitor. What do you do first?
+            </div>
+            <div class="scenario-choices">
+              <div class="scenario-choice" onclick="checkScenario(this, false)">
+                Turn off the floor monitor completely
+              </div>
+              <div class="scenario-choice" onclick="checkScenario(this, false)">
+                Turn up the main speakers to mask it
+              </div>
+              <div class="scenario-choice" onclick="checkScenario(this, true)">
+                Pull down the worship leader's channel fader slightly
+              </div>
+              <div class="scenario-choice" onclick="checkScenario(this, false)">
+                Ask them to move away mid-song
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:30px">
+            <button class="btn btn-success" onclick="completeFeedback()">
+              Complete Lesson! 🎉
+            </button>
+          </div>
+        `
+      },
+
+      // Add more lessons as needed...
+      'eq': {
+        title: 'EQ Mastery',
+        duration: '15 min',
+        xp: 150,
+        content: `
+          <div class="lesson-header">
+            <h2>EQ Mastery 🎚️</h2>
+            <div class="lesson-meta">
+              <span>⏱️ 15 min</span>
+              <span>🎯 Core Skill</span>
+              <span>💎 150 XP</span>
+            </div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>🎛️ What is EQ?</h3>
+            <p><strong>EQ (Equalization)</strong> lets you boost or cut specific frequencies to shape the sound. It's like having bass and treble knobs, but way more precise.</p>
+
+            <div class="info-box tip">
+              <div class="info-box-icon">💡</div>
+              <div class="info-box-content">
+                <div class="info-box-title">The Golden Rule of EQ</div>
+                <div><strong>Cut before you boost!</strong> If something sounds muddy, cut the mud - don't boost the highs to compensate.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.2s">
+            <h3>🔧 EQ Quick Fixes - Drag & Drop!</h3>
+            <p>Match each problem to its EQ solution:</p>
+
+            <div class="dnd-container">
+              <div class="dnd-items" id="dndItems">
+                <div style="font-weight:bold;margin-bottom:12px;color:var(--dim)">Problems:</div>
+                <div class="dnd-item" draggable="true" data-match="muddy">🐘 Muddy sound</div>
+                <div class="dnd-item" draggable="true" data-match="harsh">🗡️ Harsh/piercing</div>
+                <div class="dnd-item" draggable="true" data-match="thin">📄 Thin/weak</div>
+                <div class="dnd-item" draggable="true" data-match="sibilant">🐍 Sibilant "S"</div>
+              </div>
+              <div class="dnd-targets" id="dndTargets">
+                <div style="font-weight:bold;margin-bottom:12px;color:var(--dim)">Solutions:</div>
+                <div class="dnd-target" data-answer="thin">Boost 200-400 Hz →</div>
+                <div class="dnd-target" data-answer="muddy">Cut 300 Hz →</div>
+                <div class="dnd-target" data-answer="harsh">Cut 2-4 kHz →</div>
+                <div class="dnd-target" data-answer="sibilant">Cut 5-7 kHz →</div>
+              </div>
+            </div>
+            <div id="dndFeedback" style="text-align:center;margin-top:16px;color:var(--dim)">
+              Drag problems to their solutions!
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.4s">
+            <h3>🎚️ The 4-Band EQ</h3>
+            <p>The X32 gives you 4 bands of parametric EQ per channel:</p>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px">
+              <div style="text-align:center;padding:16px;background:var(--bg);border-radius:12px">
+                <div style="font-size:24px;margin-bottom:8px">1️⃣</div>
+                <div style="font-weight:bold">Low</div>
+                <div style="font-size:12px;color:var(--dim)">60-500 Hz</div>
+              </div>
+              <div style="text-align:center;padding:16px;background:var(--bg);border-radius:12px">
+                <div style="font-size:24px;margin-bottom:8px">2️⃣</div>
+                <div style="font-weight:bold">Low-Mid</div>
+                <div style="font-size:12px;color:var(--dim)">200 Hz - 2 kHz</div>
+              </div>
+              <div style="text-align:center;padding:16px;background:var(--bg);border-radius:12px">
+                <div style="font-size:24px;margin-bottom:8px">3️⃣</div>
+                <div style="font-weight:bold">High-Mid</div>
+                <div style="font-size:12px;color:var(--dim)">500 Hz - 8 kHz</div>
+              </div>
+              <div style="text-align:center;padding:16px;background:var(--bg);border-radius:12px">
+                <div style="font-size:24px;margin-bottom:8px">4️⃣</div>
+                <div style="font-weight:bold">High</div>
+                <div style="font-size:12px;color:var(--dim)">2-16 kHz</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:30px">
+            <button class="btn btn-success" onclick="completeAndNext('eq', 'dcas')">
+              Complete & Continue →
+            </button>
+          </div>
+        `
+      },
+
+      'dcas': {
+        title: 'DCA Groups',
+        duration: '10 min',
+        xp: 100,
+        content: `
+          <div class="lesson-header">
+            <h2>DCA Groups 🎛️</h2>
+            <div class="lesson-meta">
+              <span>⏱️ 10 min</span>
+              <span>🎯 Essential</span>
+              <span>💎 100 XP</span>
+            </div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>🤔 What's a DCA?</h3>
+            <p>A <strong>DCA (Digitally Controlled Amplifier)</strong> is like a master volume for a group of channels.</p>
+
+            <div style="background:var(--bg);padding:20px;border-radius:12px;margin-top:16px">
+              <p><strong>Without DCAs:</strong></p>
+              <p style="color:var(--dim)">To turn down all 4 vocal mics, you'd need to move 4 faders at once. Good luck! 🤹</p>
+
+              <p style="margin-top:16px"><strong>With DCAs:</strong></p>
+              <p style="color:var(--dim)">Assign all vocals to DCA 1 → Move ONE fader to control them all! 🎯</p>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.2s">
+            <h3>📋 Typical Church DCA Setup</h3>
+
+            <div style="display:grid;gap:12px;margin-top:16px">
+              <div style="display:flex;align-items:center;gap:16px;padding:16px;background:linear-gradient(90deg,rgba(239,68,68,0.2),transparent);border-radius:12px;border-left:4px solid #ef4444">
+                <div style="font-size:28px;font-weight:bold;width:50px">1</div>
+                <div>
+                  <div style="font-weight:bold">VOCALS</div>
+                  <div style="font-size:13px;color:var(--dim)">Lead + all backup singers</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:16px;background:linear-gradient(90deg,rgba(59,130,246,0.2),transparent);border-radius:12px;border-left:4px solid #3b82f6">
+                <div style="font-size:28px;font-weight:bold;width:50px">2</div>
+                <div>
+                  <div style="font-weight:bold">BAND</div>
+                  <div style="font-size:13px;color:var(--dim)">Drums, bass, guitars, keys</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:16px;background:linear-gradient(90deg,rgba(234,179,8,0.2),transparent);border-radius:12px;border-left:4px solid #eab308">
+                <div style="font-size:28px;font-weight:bold;width:50px">3</div>
+                <div>
+                  <div style="font-weight:bold">PASTOR</div>
+                  <div style="font-size:13px;color:var(--dim)">Speaking mics</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:16px;padding:16px;background:linear-gradient(90deg,rgba(6,182,212,0.2),transparent);border-radius:12px;border-left:4px solid #06b6d4">
+                <div style="font-size:28px;font-weight:bold;width:50px">4</div>
+                <div>
+                  <div style="font-weight:bold">PLAYBACK</div>
+                  <div style="font-size:13px;color:var(--dim)">Background music, video audio</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scenario">
+            <div class="scenario-text">
+              <strong>🎬 Scenario:</strong> The pastor starts speaking after worship. The band is still playing softly but is too loud. What's the fastest way to bring down the band without affecting anything else?
+            </div>
+            <div class="scenario-choices">
+              <div class="scenario-choice" onclick="checkScenario(this, false)">
+                Pull down each instrument channel individually
+              </div>
+              <div class="scenario-choice" onclick="checkScenario(this, true)">
+                Pull down DCA 2 (Band)
+              </div>
+              <div class="scenario-choice" onclick="checkScenario(this, false)">
+                Mute all band channels
+              </div>
+              <div class="scenario-choice" onclick="checkScenario(this, false)">
+                Turn up DCA 3 (Pastor) instead
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:30px">
+            <button class="btn btn-success" onclick="completeAndNext('dcas', 'monitors')">
+              Complete & Continue →
+            </button>
+          </div>
+        `
+      },
+
+      'monitors': {
+        title: 'Stage Monitors',
+        duration: '12 min',
+        xp: 125,
+        content: `
+          <div class="lesson-header">
+            <h2>Stage Monitors 🎧</h2>
+            <div class="lesson-meta">
+              <span>⏱️ 12 min</span>
+              <span>🎯 Essential</span>
+              <span>💎 125 XP</span>
+            </div>
+          </div>
+
+          <div class="card fade-in">
+            <h3>🤔 Why Monitors?</h3>
+            <p>Musicians on stage can't hear the main speakers clearly (they're pointed at the audience). <strong>Monitors</strong> give them their own mix so they can hear themselves and each other.</p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px">
+              <div style="text-align:center;padding:20px;background:var(--bg);border-radius:12px">
+                <div style="font-size:40px;margin-bottom:12px">🔊</div>
+                <div style="font-weight:bold">Wedge Monitors</div>
+                <div style="font-size:13px;color:var(--dim)">Speakers on the floor pointing at musicians</div>
+              </div>
+              <div style="text-align:center;padding:20px;background:var(--bg);border-radius:12px">
+                <div style="font-size:40px;margin-bottom:12px">🎧</div>
+                <div style="font-weight:bold">In-Ear Monitors (IEMs)</div>
+                <div style="font-size:13px;color:var(--dim)">Earphones with personal mixes</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-box tip">
+            <div class="info-box-icon">💡</div>
+            <div class="info-box-content">
+              <div class="info-box-title">The "More Me" Request</div>
+              <div>When a musician says "I need more of myself," increase their channel's <strong>send</strong> to their monitor bus - NOT the channel fader (that changes the house mix too)!</div>
+            </div>
+          </div>
+
+          <div class="card fade-in" style="animation-delay:0.2s">
+            <h3>📋 Typical Monitor Requests</h3>
+
+            <div style="display:grid;gap:12px;margin-top:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;background:var(--bg);border-radius:12px">
+                <div><strong>Worship Leader</strong></div>
+                <div style="font-size:13px;color:var(--dim)">More of their own voice, keys, click</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;background:var(--bg);border-radius:12px">
+                <div><strong>Drummer</strong></div>
+                <div style="font-size:13px;color:var(--dim)">LOTS of click, bass, keys</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;background:var(--bg);border-radius:12px">
+                <div><strong>Guitarist</strong></div>
+                <div style="font-size:13px;color:var(--dim)">Click, keys, vocals, less of themselves</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:16px;background:var(--bg);border-radius:12px">
+                <div><strong>Keys Player</strong></div>
+                <div style="font-size:13px;color:var(--dim)">Click, kick/snare, vocals</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:30px">
+            <button class="btn btn-success" onclick="completeAndNext('monitors', 'feedback')">
+              Complete & Continue →
+            </button>
+          </div>
+        `
+      }
+    };
+
+    // ========================================
+    // QUIZ FUNCTIONS
+    // ========================================
+    function checkQuiz(quizId, selected, correct) {
+      const feedback = document.getElementById(`feedback-${quizId}`);
+      const options = document.querySelectorAll(`#quiz-${quizId.split('-')[0]} .quiz-option, .quiz-options .quiz-option`);
+
+      options.forEach(opt => {
+        opt.classList.remove('selected', 'correct', 'incorrect');
+        const answer = opt.dataset.answer || opt.querySelector('.quiz-option-letter').textContent.toLowerCase();
+        if (answer === correct) {
+          opt.classList.add('correct');
+        } else if (answer === selected) {
+          opt.classList.add('incorrect');
+        }
+      });
+
+      feedback.classList.add('show');
+      if (selected === correct) {
+        feedback.className = 'quiz-feedback show correct';
+        feedback.innerHTML = '✅ <strong>Correct!</strong> Great job!';
+        addXP(25);
+      } else {
+        feedback.className = 'quiz-feedback show incorrect';
+        feedback.innerHTML = '❌ <strong>Not quite.</strong> The correct answer is highlighted.';
+      }
+    }
+
+    function checkScenario(el, correct) {
+      document.querySelectorAll('.scenario-choice').forEach(c => {
+        c.style.borderColor = 'var(--border)';
+        c.style.background = 'rgba(255,255,255,0.05)';
+      });
+
+      if (correct) {
+        el.style.borderColor = 'var(--green)';
+        el.style.background = 'rgba(34,197,94,0.2)';
+        showToast('✅ Correct! +50 XP');
+        addXP(50);
+      } else {
+        el.style.borderColor = 'var(--red)';
+        el.style.background = 'rgba(239,68,68,0.2)';
+        showToast('❌ Try again!');
+      }
+    }
+
+    // ========================================
+    // FREQUENCY VISUALIZER
+    // ========================================
+    const freqData = {
+      sub: { name: 'Sub Bass', range: '20-60 Hz', desc: 'Felt more than heard. The thump in kick drums, bass drops. Too much = rumble, too little = thin.', color: '#ef4444' },
+      bass: { name: 'Bass', range: '60-250 Hz', desc: 'Warmth and weight. Bass guitar, kick drum body. Too much = boomy, too little = weak.', color: '#f97316' },
+      lowmid: { name: 'Low Mids', range: '250-500 Hz', desc: 'Body and fullness. Guitar body, vocal warmth. Too much = muddy, too little = hollow.', color: '#eab308' },
+      mid: { name: 'Mids', range: '500 Hz - 2 kHz', desc: 'Presence and intelligibility. Vocals, snare crack. Too much = nasal, too little = distant.', color: '#22c55e' },
+      highmid: { name: 'High Mids', range: '2-4 kHz', desc: 'Clarity and attack. Vocal consonants, pick noise. Too much = harsh, too little = dull.', color: '#06b6d4' },
+      presence: { name: 'Presence', range: '4-6 kHz', desc: 'Definition and sibilance. "S" sounds, cymbal shimmer. Too much = sibilant, too little = muffled.', color: '#8b5cf6' },
+      air: { name: 'Air', range: '6-20 kHz', desc: 'Sparkle and airiness. Cymbal sizzle, vocal breath. Too much = hissy, too little = dark.', color: '#ec4899' }
+    };
+
+    function selectFreq(el, freq) {
+      document.querySelectorAll('.freq-bar').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+
+      const data = freqData[freq];
+      document.getElementById('freqInfo').innerHTML = `
+        <div style="font-size:18px;font-weight:bold;color:${data.color}">${data.name}</div>
+        <div style="font-size:14px;color:var(--accent);margin:4px 0">${data.range}</div>
+        <div style="font-size:13px;color:var(--dim);margin-top:8px">${data.desc}</div>
+      `;
+
+      // Check for frequency achievement
+      if (!state.achievements.includes(2)) {
+        setTimeout(() => unlockAchievement(2, '📊', 'Frequency Explorer', 'You explored the frequency spectrum!'), 1000);
+      }
+    }
+
+    // ========================================
+    // DRAG AND DROP
+    // ========================================
+    function initDragDrop() {
+      const items = document.querySelectorAll('.dnd-item');
+      const targets = document.querySelectorAll('.dnd-target');
+
+      items.forEach(item => {
+        item.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', item.dataset.match);
+          item.classList.add('dragging');
+        });
+        item.addEventListener('dragend', () => item.classList.remove('dragging'));
+      });
+
+      targets.forEach(target => {
+        target.addEventListener('dragover', e => {
+          e.preventDefault();
+          target.classList.add('over');
+        });
+        target.addEventListener('dragleave', () => target.classList.remove('over'));
+        target.addEventListener('drop', e => {
+          e.preventDefault();
+          target.classList.remove('over');
+          const match = e.dataTransfer.getData('text/plain');
+
+          if (match === target.dataset.answer) {
+            target.classList.add('correct');
+            target.textContent = `✅ ${target.textContent}`;
+            addXP(20);
+          } else {
+            target.classList.add('incorrect');
+            setTimeout(() => target.classList.remove('incorrect'), 1000);
+          }
+        });
+      });
+    }
+
+    // ========================================
+    // NAVIGATION
+    // ========================================
+    function loadModule(moduleName) {
+      const lesson = lessons[moduleName];
+      if (!lesson) return;
+
+      state.currentModule = moduleName;
+      saveState();
+      updateUI();
+
+      document.getElementById('contentArea').innerHTML = lesson.content;
+
+      // Reinitialize interactive elements
+      setTimeout(() => {
+        if (document.querySelector('.dnd-item')) initDragDrop();
+      }, 100);
+
+      // Scroll to top
+      document.getElementById('contentArea').scrollTop = 0;
+    }
+
+    function completeAndNext(current, next) {
+      completeModule(current);
+      const xp = lessons[current]?.xp || 50;
+      addXP(xp);
+
+      // Check achievements
+      if (current === 'intro' && !state.achievements.includes(0)) {
+        unlockAchievement(0, '📚', 'First Steps', 'You completed your first lesson!');
+      }
+      if (current === 'eq' && !state.achievements.includes(3)) {
+        unlockAchievement(3, '🎚️', 'EQ Wizard', 'You mastered the basics of EQ!');
+      }
+      if (current === 'dcas' && !state.achievements.includes(4)) {
+        unlockAchievement(4, '🎛️', 'DCA Pro', 'You understand DCA groups!');
+      }
+      if (current === 'monitors' && !state.achievements.includes(5)) {
+        unlockAchievement(5, '🎧', 'Monitor Master', 'You can handle stage monitors!');
+      }
+
+      setTimeout(() => loadModule(next), 500);
+    }
+
+    function completeFeedback() {
+      completeModule('feedback');
+      addXP(150);
+      unlockAchievement(6, '🔊', 'Feedback Fighter', 'You can fight feedback like a pro!');
+
+      // Check for Sound Engineer achievement
+      if (state.completedModules.length >= 7) {
+        setTimeout(() => {
+          unlockAchievement(7, '👑', 'Sound Engineer', 'You completed all lessons! You\'re ready!');
+        }, 2000);
+      }
+    }
+
+    // ========================================
+    // INITIALIZATION
+    // ========================================
+    document.addEventListener('DOMContentLoaded', () => {
+      loadState();
+
+      // Module click handlers
+      document.querySelectorAll('.module-item').forEach(item => {
+        item.addEventListener('click', () => {
+          if (!item.classList.contains('locked')) {
+            loadModule(item.dataset.module);
+          }
+        });
+      });
+
+      // Load initial module
+      loadModule(state.currentModule || 'intro');
+
+      // Achievement overlay close
+      document.getElementById('achievementOverlay').addEventListener('click', closeAchievement);
+    });
+  </script>
+</body>
+</html>
