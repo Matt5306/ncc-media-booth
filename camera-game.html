@@ -253,7 +253,7 @@
     <div class="chip">Tally lights</div>
   </div>
   <div class="panels" id="panels"></div>
-  <div class="hint" style="margin-top:4px">60 seconds &middot; Arrow keys, the on-screen pad, or a game controller</div>
+  <div class="hint" style="margin-top:4px">90 seconds &middot; Arrow keys, the on-screen pad, or a game controller</div>
   <div class="hint" id="padHint" style="color:var(--accent)">Plug in a game controller for a real joystick feel.</div>
   <div id="camNote"></div>
 </div>
@@ -263,7 +263,7 @@
   <div class="hud">
     <div class="tally" id="tally"><span class="dot"></span><span id="tallyText">STANDBY</span></div>
     <div class="tally" id="padBadge" style="display:none">&#127918; STICK</div>
-    <div class="stat">TIME <b id="timeLeft">60</b></div>
+    <div class="stat">TIME <b id="timeLeft">90</b></div>
     <div class="stat">SCORE <b id="score">0</b></div>
     <div class="stat">SHOTS <b id="shotCount">0</b></div>
     <div class="call">
@@ -354,9 +354,10 @@
   if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
   if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
   if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+  if (typeof Arcade.ready !== 'function') Arcade.ready = function (h, g, cb) { cb(); };
 
   // ---------------------------------------------------------------- config
-  var ROUND_SECONDS = 60;
+  var ROUND_SECONDS = 90;
   var CALL_TIMEOUT  = 16;    // seconds before a shot call expires
   var HOLD_TO_LOCK  = 0.6;   // seconds inside tolerance to lock the shot
   var IDLE_RESET    = 45000; // ms of no input on results/attract -> attract
@@ -975,7 +976,10 @@
       btn.disabled = false;
       btn.textContent = 'Take the Camera';
       applyCam();
-      startRound();
+      show('game');
+      Arcade.ready($('game'),
+        'The director calls a shot at the top. Move the camera until the <b>gold box lines up with the edges</b> of the picture, then hold still.',
+        startRound);
     });
   }
 

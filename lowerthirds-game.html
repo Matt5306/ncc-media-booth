@@ -163,13 +163,13 @@
   </div>
   <div class="panels" id="panels"></div>
   <button class="btn primary big" id="startBtn">Take the Graphics Desk</button>
-  <div class="hint">60 seconds &middot; Click the name, then take it down</div>
+  <div class="hint">90 seconds &middot; Tap the name, then take it down</div>
 </div>
 
 <!-- ============ GAME ============ -->
 <div class="screen" id="game">
   <div class="hud">
-    <div class="stat">TIME <b id="timeLeft">60</b></div>
+    <div class="stat">TIME <b id="timeLeft">90</b></div>
     <div class="stat">SCORE <b id="score">0</b></div>
     <div class="stat">CLEAN <b id="clean">0</b></div>
     <div class="cue">
@@ -230,6 +230,7 @@
   if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
   if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
   if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+  if (typeof Arcade.ready !== 'function') Arcade.ready = function (h, g, cb) { cb(); };
 
   // Real New Creation names. Two Statons and two Millenders is not a contrivance -
   // it is exactly the situation that catches operators out on a Sunday.
@@ -240,7 +241,7 @@
     { name: 'Minister Jessica Staton',   title: 'Speaker' }
   ];
 
-  var ROUND_SECONDS = 60;
+  var ROUND_SECONDS = 90;
   var PICK_WINDOW   = 7000;   // ms to fire the right name before the moment passes
   var TOO_QUICK     = 2200;   // down before this and nobody could read it
   var IDEAL_MAX     = 8000;   // down after this and it has overstayed
@@ -440,8 +441,13 @@
     $('l3').classList.remove('up');
     setOnAir(false);
     show('game');
-    newCue();
-    raf = requestAnimationFrame(tick);
+    Arcade.ready($('game'),
+      'The <b>STAGE</b> line says who is speaking. Tap that person in the list, leave the name up a few seconds, then <b>TAKE IT DOWN</b>.',
+      function () {
+        st.roundStart = performance.now();
+        newCue();
+        raf = requestAnimationFrame(tick);
+      });
   }
 
   function finish() {

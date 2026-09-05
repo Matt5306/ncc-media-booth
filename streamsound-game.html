@@ -161,14 +161,14 @@
   </div>
   <div class="panels" id="panels"></div>
   <button class="btn primary big" id="startBtn">Put the Headphones On</button>
-  <div class="hint">60 seconds &middot; Drag the faders</div>
+  <div class="hint">90 seconds &middot; Drag the faders</div>
 </div>
 
 <!-- ============ GAME ============ -->
 <div class="screen" id="game">
   <div class="hud">
     <div class="live"><span class="dot"></span>LIVE</div>
-    <div class="stat">TIME <b id="timeLeft">60</b></div>
+    <div class="stat">TIME <b id="timeLeft">90</b></div>
     <div class="stat">SCORE <b id="score">0</b></div>
     <div class="stat">FIXED <b id="fixed">0</b></div>
     <div class="stat" style="flex:1;min-width:150px;color:var(--gold)" id="nowFixing">Waiting for comments&hellip;</div>
@@ -220,6 +220,7 @@
   if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
   if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
   if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+  if (typeof Arcade.ready !== 'function') Arcade.ready = function (h, g, cb) { cb(); };
 
   // Channel names lifted from the real Sanctuary board export.
   var CHANNELS = [
@@ -244,7 +245,7 @@
     { ch:'pastor', who:'@WatchingNC',text:'pastor keeps cutting in and out, too low', lo:60, hi:80, start:20 }
   ];
 
-  var ROUND_SECONDS = 60;
+  var ROUND_SECONDS = 90;
   var HOLD_MS       = 500;   // time inside the zone before it counts as fixed
   var COMPLAINT_MS  = 15000; // before a viewer gives up on you
 
@@ -426,8 +427,14 @@
     buildStrips();
     paintAll();
     show('game');
-    newComplaint();
-    raf = requestAnimationFrame(tick);
+    Arcade.ready($('game'),
+      'Viewers complain in the chat. The channel they mean lights up <b>gold</b>. Drag that fader into the <b>gold band</b> and hold it there.',
+      function () {
+        st.roundStart = performance.now();
+        st.lastFrame = performance.now();
+        newComplaint();
+        raf = requestAnimationFrame(tick);
+      });
   }
 
   function finish() {

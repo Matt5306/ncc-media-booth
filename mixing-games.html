@@ -491,7 +491,7 @@
             <div class="hud-label">Score</div>
           </div>
           <div class="hud-item">
-            <div class="hud-value" id="gainTime">60</div>
+            <div class="hud-value" id="gainTime">90</div>
             <div class="hud-label">Time</div>
           </div>
           <div class="hud-item">
@@ -727,7 +727,7 @@
             <div class="hud-label">Score</div>
           </div>
           <div class="hud-item">
-            <div class="hud-value" id="mixTime">60</div>
+            <div class="hud-value" id="mixTime">90</div>
             <div class="hud-label">Time</div>
           </div>
           <div class="hud-item">
@@ -819,6 +819,7 @@
   if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
   if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
   if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+  if (typeof Arcade.ready !== 'function') Arcade.ready = function (h, g, cb) { cb(); };
 
     const HOWTO = {
       gain: {
@@ -874,11 +875,23 @@
       mix: () => startMixGame()
     };
 
+    // One sentence of goal, shown on the real game screen before the clock runs.
+    const GOALS = {
+      gain: 'The <b>OUTPUT</b> meter drifts on its own. Drag the fader to keep it in the <b>-18dB</b> zone.',
+      feedback: 'When a frequency button <b>glows red</b>, tap it before it howls.',
+      cue: 'When a channel is <b>called</b>, tap its button to bring it LIVE.',
+      mix: 'Drag each fader until its meter sits on the <b>target line</b>.'
+    };
+
     function startGame(game) {
       document.getElementById('gameMenu').style.display = 'none';
-      document.getElementById(game + 'Game').style.display = 'block';
+      const host = document.getElementById(game + 'Game');
+      host.style.display = 'block';
+      // Hide the old in-game instructions panel so only the ready card shows.
+      const oldOverlay = host.querySelector('.game-overlay');
+      if (oldOverlay) oldOverlay.classList.add('hidden');
       const go = STARTERS[game];
-      if (go) go();
+      if (go) Arcade.ready(host, GOALS[game] || '', go);
     }
 
     // Shared game-over furniture: offer initials on a high score, else the board.
@@ -901,14 +914,14 @@
     // ========================================
     // GAIN SURFER
     // ========================================
-    let gain = { score: 0, time: 60, streak: 0, lives: 3, fader: 75, input: 50, running: false };
+    let gain = { score: 0, time: 90, streak: 0, lives: 3, fader: 75, input: 50, running: false };
 
     function updateGainFader(val) {
       gain.fader = parseInt(val);
     }
 
     function startGainGame() {
-      gain = { score: 0, time: 60, streak: 0, lives: 3, fader: 75, input: 50, running: true };
+      gain = { score: 0, time: 90, streak: 0, lives: 3, fader: 75, input: 50, running: true };
       document.getElementById('gainOverlay').classList.add('hidden');
       document.getElementById('gainFader').value = 75;
       updateGainHUD();
@@ -1265,12 +1278,12 @@
     // MIX BALANCER
     // ========================================
     const mixChannels = ['Kick', 'Snare', 'Bass', 'Keys', 'GTR', 'Vox'];
-    let mix = { score: 0, time: 60, running: false, levels: [], targets: [] };
+    let mix = { score: 0, time: 90, running: false, levels: [], targets: [] };
 
     function startMixGame() {
       mix = {
         score: 0,
-        time: 60,
+        time: 90,
         running: true,
         levels: mixChannels.map(() => 50),
         targets: mixChannels.map(() => 30 + Math.random() * 40)

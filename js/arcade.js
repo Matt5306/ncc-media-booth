@@ -200,7 +200,16 @@
       '.arc-let.active{border-color:var(--gold,#d29922);color:var(--gold,#d29922)}',
       '.arc-entry-hint{font-size:12px;color:var(--text-dim,#8b949e);text-align:center;margin-bottom:12px}',
       '.arc-save{display:block;margin:0 auto;padding:13px 30px;font-size:15px;font-weight:800;font-family:inherit;',
-      'cursor:pointer;background:var(--gold,#d29922);color:#1a1200;border:none;border-radius:8px}'
+      'cursor:pointer;background:var(--gold,#d29922);color:#1a1200;border:none;border-radius:8px}',
+      '.arc-ready{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;',
+      'background:rgba(13,17,23,.80);cursor:pointer;padding:22px;touch-action:manipulation}',
+      '.arc-ready-box{max-width:520px;text-align:center;background:var(--panel,#161b22);border:1px solid var(--border,#30363d);',
+      'border-radius:14px;padding:26px 28px;box-shadow:0 20px 60px rgba(0,0,0,.6)}',
+      '.arc-ready-goal{font-size:clamp(17px,2.4vw,23px);line-height:1.45;margin:6px 0 20px}',
+      '.arc-ready-goal b{color:var(--gold,#d29922)}',
+      '.arc-ready-tap{font-size:14px;letter-spacing:2.5px;font-weight:900;color:#04121f;background:var(--accent,#58a6ff);',
+      'padding:14px 22px;border-radius:999px;display:inline-block;animation:arcPulse 1.6s ease-in-out infinite}',
+      '@keyframes arcPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}'
     ].join('');
     document.head.appendChild(css);
   }
@@ -225,10 +234,40 @@
     img.src = url;
   }
 
+  // ---------------------------------------------------------------- get ready
+  // A pause on the REAL game screen before the clock starts. The menu how-to is
+  // abstract; this shows the actual desk, frozen, with one sentence of goal, and
+  // waits for a tap. Direct response to "the round was over before I understood
+  // what I was doing". The whole screen is the button, so it cannot be missed.
+  function ready(host, goal, onStart) {
+    if (!host) { onStart(); return; }
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    var ov = document.createElement('div');
+    ov.className = 'arc-ready';
+    ov.innerHTML =
+      '<div class="arc-ready-box">' +
+        '<div class="arc-title">GET READY</div>' +
+        '<div class="arc-ready-goal">' + goal + '</div>' +
+        '<div class="arc-ready-tap">TAP ANYWHERE TO START</div>' +
+      '</div>';
+    host.appendChild(ov);
+    var done = false;
+    function go(e) {
+      if (done) return;
+      done = true;
+      if (e && e.preventDefault) e.preventDefault();
+      document.removeEventListener('keydown', go);
+      if (ov.parentNode) ov.parentNode.removeChild(ov);
+      onStart();
+    }
+    ov.addEventListener('pointerdown', go);
+    document.addEventListener('keydown', go);
+  }
+
   global.Arcade = {
     top: top, qualifies: qualifies, submit: submit,
     boardHTML: boardHTML, howTo: howTo,
     initialsHTML: initialsHTML, wireInitials: wireInitials,
-    backdrop: backdrop
+    backdrop: backdrop, ready: ready
   };
 })(window);

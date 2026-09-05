@@ -218,6 +218,7 @@
   if (typeof Arcade.submit !== 'function') Arcade.submit = function () {};
   if (typeof Arcade.wireInitials !== 'function') Arcade.wireInitials = function () {};
   if (typeof Arcade.backdrop !== 'function') Arcade.backdrop = function (u, cb) { cb(null); };
+  if (typeof Arcade.ready !== 'function') Arcade.ready = function (h, g, cb) { cb(); };
 
   // ---------------------------------------------------------------- content
   // Real songs and scripture from New Creation. `gap` is how long the line is
@@ -352,7 +353,12 @@
     $('nextLine').textContent = set.lines[0][0];
     $('nextLine').className = 'nextline';
     show('game');
-    raf = requestAnimationFrame(tick);
+    Arcade.ready($('game'),
+      'The <b>NEXT SLIDE</b> panel shows the line coming up. When the bar under it turns green, hit the big button &mdash; a beat <b>before</b> they sing it.',
+      function () {
+        st.dueAt = performance.now() + 2600;
+        raf = requestAnimationFrame(tick);
+      });
   }
 
   function tick(now) {
