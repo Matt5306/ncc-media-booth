@@ -1,0 +1,14 @@
+{
+  "name": "New Creation Media Team Booth",
+  "short_name": "Media Booth",
+  "description": "Five media-team stations you can try in ninety seconds each.",
+  "start_url": "booth.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    { "src": "assets/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

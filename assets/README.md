@@ -13,6 +13,10 @@ breaks, and you never have to touch any code.
 
 Exact names, lower case, `.jpg`.
 
+Already in this folder and **meant to stay**: `icon.png` — the 512px home-screen icon
+(the church dove on a dark background) that `manifest.json` points at. It is what shows
+up when someone does "Add to Home Screen" on their phone. Do not delete it.
+
 ## What makes a good one
 
 - **Landscape**, roughly 16:9. Portrait phone photos get cropped badly.
