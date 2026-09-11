@@ -136,6 +136,34 @@
   }
   .strip b { color: var(--text); }
   .strip span { color: var(--text-dim); font-size: clamp(13px, 1.5vw, 17px); }
+
+  .prize {
+    display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px;
+    background: var(--gold); color: #1a1200; font-size: 11px; letter-spacing: 1px; vertical-align: middle;
+  }
+  .host-btn {
+    margin-left: auto; background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; opacity: .6;
+  }
+  .host-btn:hover { opacity: 1; }
+  .host {
+    position: fixed; right: 18px; bottom: 74px; z-index: 40; width: min(420px, calc(100vw - 36px));
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6); font-size: 14px;
+  }
+  .host-title { font-size: 11px; letter-spacing: 2px; font-weight: 800; color: var(--text-dim); margin-bottom: 10px; }
+  .host-row { margin: 8px 0; color: var(--text); }
+  .host-note { color: var(--text-dim); font-size: 12px; line-height: 1.5; }
+  .host-opts { display: inline-flex; gap: 6px; margin: 0 6px; }
+  .host-opts button {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text); font-family: inherit;
+    font-weight: 700; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  }
+  .host-opts button.on { background: var(--gold); border-color: var(--gold); color: #1a1200; }
+  .host-danger {
+    background: transparent; border: 1px solid var(--red); color: var(--red); font-family: inherit;
+    padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
 </style>
 </head>
 <body>
@@ -169,9 +197,26 @@
     <span><b>Not sure?</b> Try House Sound &mdash; it is where most people start.</span>
     <span>&middot;</span>
     <span>Ask any of us what a <b>tally light</b> is. We love that question.</span>
+    <button class="host-btn" id="hostBtn" title="Host settings">Host</button>
+  </div>
+
+  <!-- Host panel: prize-round length and a board reset. Small on purpose;
+       visitors should not find it interesting. -->
+  <div class="host" id="hostPanel" hidden>
+    <div class="host-title">HOST SETTINGS</div>
+    <div class="host-row">Prize round length
+      <span class="host-opts" id="roundOpts">
+        <button data-min="15">15</button><button data-min="20">20</button>
+        <button data-min="30">30</button><button data-min="60">60</button>
+      </span> min
+    </div>
+    <div class="host-row" id="roundNow"></div>
+    <div class="host-row host-note">Rounds cut on the clock, so every station is on the same round. Top <b>Camera</b> score each round wins a box. Read the LAST ROUND line on any board.</div>
+    <div class="host-row"><button class="host-danger" id="clearBoards">Clear all scores on this device</button></div>
   </div>
 </div>
 
+<script src="js/arcade.js"></script>
 <script>
 (function () {
   'use strict';
@@ -184,8 +229,8 @@
     {
       icon: '🎚️', name: 'House Sound', role: 'THE ROOM',
       colour: 'var(--accent)',
-      desc: 'Mix what the people in the building hear. Catch feedback before it screams, keep the pastor above the band, ride the levels all service.',
-      href: 'mixing-games.html', tag: '4 games'
+      desc: 'Mix what the people in the building hear. Read the room, find the channel, and catch feedback before it screams.',
+      href: 'housesound-game.html', tag: 'Play now'
     },
     {
       icon: '📡', name: 'Stream Sound', role: 'THE INTERNET',
@@ -197,7 +242,7 @@
       icon: '🎥', name: 'Camera', role: 'THE SHOT',
       colour: 'var(--gold)',
       desc: 'The director calls a shot in your headset. Find it, frame it, hold it steady. Headroom, thirds, and never a jerky move.',
-      href: 'camera-game.html', tag: 'Play now'
+      href: 'camera-game.html', tag: 'Play now', prize: true
     },
     {
       icon: '📖', name: 'ProPresenter', role: 'THE WORDS',
@@ -233,7 +278,7 @@
     if (live) { el.href = s.href; }
     el.innerHTML =
       '<div class="icon">' + s.icon + '</div>' +
-      '<div class="role">' + s.role + '</div>' +
+      '<div class="role">' + s.role + (s.prize ? ' <span class="prize">&#127942; PRIZE GAME</span>' : '') + '</div>' +
       '<h2>' + s.name + '</h2>' +
       '<div class="desc">' + s.desc + '</div>' +
       '<div class="go">' + s.tag + '</div>';
@@ -278,6 +323,46 @@
   ['pointerdown','keydown','wheel'].forEach(function (e) {
     document.addEventListener(e, armIdle, true);
   });
+
+  // ---- host panel (prize rounds). Everything is guarded: if arcade.js did
+  // not load, the button just does nothing and the booth still works.
+  var A = window.Arcade;
+  var panel = $('hostPanel');
+  function paintHost() {
+    if (!A || !A.round) return;
+    var cur = A.roundMinutes();
+    var btns = $('roundOpts').querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle('on', Number(btns[i].getAttribute('data-min')) === cur);
+    }
+    var r = A.round();
+    var d = new Date(r.end);
+    var h = d.getHours(), m = d.getMinutes();
+    var ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+    $('roundNow').textContent = 'Current round ends at ' + h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap +
+      ' (' + Math.max(0, Math.ceil((r.end - Date.now()) / 60000)) + ' min left)';
+  }
+  $('hostBtn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) paintHost();
+  });
+  $('roundOpts').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || !A || !A.setRoundMinutes) return;
+    A.setRoundMinutes(b.getAttribute('data-min'));
+    paintHost();
+  });
+  $('clearBoards').addEventListener('click', function () {
+    if (!A || !A.clearBoards) return;
+    if (confirm('Clear every high score on this device? This cannot be undone.')) {
+      A.clearBoards();
+      paintHost();
+    }
+  });
+  setInterval(function () { if (!panel.hidden) paintHost(); }, 15000);
+  $('backBtn').addEventListener('click', function () { panel.hidden = true; });
+
   armIdle();
 })();
 </script>

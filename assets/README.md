@@ -44,3 +44,6 @@ the dove logo, plus some vertical talking-head clips. Checked on 2026-08-31.
 
 The lookup lives in `docs/js/arcade.js` as `Arcade.backdrop(url, callback)`.
 Each game calls it once on load with the filename it wants.
+
+- `loop-full-30s.mp4` — the full 30 s Canva export (2026-09-07, checks fixed). `loop.mp4` is the first 13 s of it with a 1 s fade, muted, for attract.html. Re-cut with:
+  `ffmpeg -i loop-full-30s.mp4 -t 13 -an -vf "fade=t=out:st=12:d=1" -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart loop.mp4`

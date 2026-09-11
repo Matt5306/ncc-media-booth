@@ -1,66 +1,153 @@
 /*
  * arcade.js - shared booth furniture for every Media Team training game.
  *
- * Gives each game two things it needs at a ministry fair:
+ * Gives each game three things it needs at a ministry fair:
  *   1. A HOW TO PLAY card. Three steps, plain language, no jargon. Shown BEFORE
  *      play, because nobody at a booth reads instructions after they have lost.
  *   2. An arcade high-score board with three-letter initials, stored per game.
+ *   3. PRIZE ROUNDS. The team hands a gift box to the top score every so often
+ *      (30 minutes by default). Rounds are cut on the wall clock, so every
+ *      device in the booth is on the same round with no server and no host
+ *      action: 10:00-10:30, 10:30-11:00, and so on. The board shows THIS ROUND,
+ *      a countdown, the LAST ROUND winner (so the host can collect it at their
+ *      own pace) and the all-time best.
  *
- * Scores live in localStorage on the booth laptop. That is deliberate: no server,
+ * Scores live in localStorage on each device. That is deliberate: no server,
  * no network, and the board resets if you clear site data. Wrapped in try/catch
  * because a locked-down browser can throw on storage access, and a dead
  * leaderboard must never take the game down with it.
  *
  * Usage:
  *   Arcade.howTo({ title, steps: [], controls: '' })  -> HTML string
- *   Arcade.boardHTML('camera')                        -> HTML string
- *   Arcade.qualifies('camera', 820)                   -> bool
+ *   Arcade.boardHTML('camera')                        -> HTML string (self-updating)
+ *   Arcade.qualifies('camera', 820)                   -> bool (this round OR all-time)
  *   Arcade.submit('camera', 'MAT', 820)
  *   Arcade.initialsHTML()                             -> HTML for the entry row
  *   Arcade.wireInitials(rootEl, onDone)               -> makes that row work
+ *   Arcade.round()                                    -> { id, start, end, len }
+ *   Arcade.roundMinutes() / Arcade.setRoundMinutes(n) -> host setting, 30 by default
+ *   Arcade.lastRoundWinner('camera')                  -> { name, score } or null
+ *   Arcade.clearBoards()                              -> wipes every board on this device
+ *   Arcade.PRIZE_GAME                                 -> 'camera'
  */
 (function (global) {
   'use strict';
 
   var KEY = 'nccMediaArcade';
+  var ROUND_KEY = 'nccMediaArcadeRoundMin';
   var KEEP = 5;
+  var PRIZE_GAME = 'camera';
+  var DEFAULT_ROUND_MIN = 30;
 
   // ---------------------------------------------------------------- storage
+  // v2 shape: { __v:2, all:{ gameId:[entries] }, rounds:{ gameId:{ roundId:[entries] } } }
+  // v1 was the flat { gameId:[entries] } map; it is migrated on first read so
+  // nobody loses a score they already entered.
+  function migrate(obj) {
+    if (obj && obj.__v === 2) {
+      obj.all = obj.all || {};
+      obj.rounds = obj.rounds || {};
+      return obj;
+    }
+    var all = {};
+    Object.keys(obj || {}).forEach(function (k) {
+      if (Array.isArray(obj[k])) all[k] = obj[k];
+    });
+    return { __v: 2, all: all, rounds: {} };
+  }
+
   function readAll() {
+    var obj = {};
     try {
       var raw = localStorage.getItem(KEY);
-      return raw ? (JSON.parse(raw) || {}) : {};
-    } catch (e) { return {}; }
+      obj = raw ? (JSON.parse(raw) || {}) : {};
+    } catch (e) { obj = {}; }
+    return migrate(obj);
   }
 
   function writeAll(obj) {
     try { localStorage.setItem(KEY, JSON.stringify(obj)); } catch (e) { /* ignore */ }
   }
 
-  function top(gameId, n) {
-    var all = readAll();
-    var list = (all[gameId] || []).slice();
+  function sortTop(list, n) {
+    list = (list || []).slice();
     list.sort(function (a, b) { return b.score - a.score; });
     return list.slice(0, n || KEEP);
   }
 
-  function qualifies(gameId, score) {
-    if (!score || score <= 0) return false;
-    var list = top(gameId, KEEP);
+  // ---------------------------------------------------------------- rounds
+  function roundMinutes() {
+    try {
+      var n = parseInt(localStorage.getItem(ROUND_KEY), 10);
+      if (n >= 5 && n <= 180) return n;
+    } catch (e) { /* ignore */ }
+    return DEFAULT_ROUND_MIN;
+  }
+
+  function setRoundMinutes(n) {
+    n = parseInt(n, 10);
+    if (!(n >= 5 && n <= 180)) return;
+    try { localStorage.setItem(ROUND_KEY, String(n)); } catch (e) { /* ignore */ }
+    refreshBoards(true);
+  }
+
+  // Rounds are aligned to the clock: round id = how many whole rounds have
+  // passed since midnight UTC. Every device agrees without talking.
+  function roundInfo() {
+    var len = roundMinutes() * 60000;
+    var now = Date.now();
+    var id = Math.floor(now / len);
+    return { id: id, start: id * len, end: (id + 1) * len, len: len, now: now };
+  }
+
+  function top(gameId, n) {
+    return sortTop(readAll().all[gameId], n);
+  }
+
+  function topRound(gameId, n, roundId) {
+    var d = readAll();
+    var rid = String(roundId == null ? roundInfo().id : roundId);
+    return sortTop((d.rounds[gameId] || {})[rid], n);
+  }
+
+  function fits(list, score) {
     if (list.length < KEEP) return true;
     return score > list[list.length - 1].score;
   }
 
+  function qualifies(gameId, score) {
+    if (!score || score <= 0) return false;
+    return fits(top(gameId, KEEP), score) || fits(topRound(gameId, KEEP), score);
+  }
+
   function submit(gameId, name, score) {
-    var all = readAll();
-    var list = all[gameId] || [];
-    list.push({
+    var d = readAll();
+    var e = {
       name: String(name || '???').toUpperCase().slice(0, 3),
-      score: Math.round(score) || 0
-    });
-    list.sort(function (a, b) { return b.score - a.score; });
-    all[gameId] = list.slice(0, KEEP);
-    writeAll(all);
+      score: Math.round(score) || 0,
+      t: Date.now()
+    };
+    d.all[gameId] = sortTop((d.all[gameId] || []).concat([e]), KEEP);
+
+    var ri = roundInfo();
+    var rg = d.rounds[gameId] || {};
+    var cur = String(ri.id);
+    rg[cur] = sortTop((rg[cur] || []).concat([e]), KEEP);
+    // Keep only this round and the previous one. The previous one is what the
+    // host reads when they come round with the prize box.
+    Object.keys(rg).forEach(function (k) { if (Number(k) < ri.id - 1) delete rg[k]; });
+    d.rounds[gameId] = rg;
+    writeAll(d);
+  }
+
+  function lastRoundWinner(gameId) {
+    var ri = roundInfo();
+    return topRound(gameId, 1, ri.id - 1)[0] || null;
+  }
+
+  function clearBoards() {
+    writeAll({ __v: 2, all: {}, rounds: {} });
+    refreshBoards(true);
   }
 
   // ---------------------------------------------------------------- markup
@@ -70,8 +157,25 @@
     });
   }
 
+  function fmtClock(ms) {
+    var d = new Date(ms);
+    var h = d.getHours(), m = d.getMinutes();
+    var ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+  }
+
+  function fmtLeft(ms) {
+    ms = Math.max(0, ms);
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
   function boardHTML(gameId, heading) {
-    var list = top(gameId, KEEP);
+    var ri = roundInfo();
+    var list = topRound(gameId, KEEP);
     var rows = '';
     for (var i = 0; i < KEEP; i++) {
       var e = list[i];
@@ -81,11 +185,41 @@
                 '<span class="arc-score">' + (e ? e.score : '&mdash;') + '</span>' +
               '</div>';
     }
-    return '<div class="arc-board">' +
-             '<div class="arc-title">' + esc(heading || 'HIGH SCORES') + '</div>' +
-             rows +
+    var all = top(gameId, 1)[0];
+    var last = lastRoundWinner(gameId);
+    var prize = (gameId === PRIZE_GAME)
+      ? '<div class="arc-prize">&#127942; PRIZE GAME &middot; TOP SCORE THIS ROUND WINS A BOX</div>'
+      : '';
+    return '<div class="arc-board" data-game="' + esc(gameId) + '" data-round="' + ri.id + '"' +
+             ' data-heading="' + esc(heading || '') + '">' +
+             '<div class="arc-title">THIS ROUND &middot; ENDS ' + fmtClock(ri.end) +
+               ' &middot; <span class="arc-cd" data-end="' + ri.end + '">' + fmtLeft(ri.end - ri.now) + '</span> LEFT</div>' +
+             prize + rows +
+             '<div class="arc-foot">' +
+               'LAST ROUND: ' + (last ? '<b>' + esc(last.name) + ' ' + last.score + '</b>' : 'nobody yet') +
+               ' &middot; ALL-TIME: ' + (all ? '<b>' + esc(all.name) + ' ' + all.score + '</b>' : '&mdash;') +
+             '</div>' +
            '</div>';
   }
+
+  // Keeps every board on the page honest: ticks the countdown each second and
+  // re-renders a board the moment its round rolls over.
+  function refreshBoards(force) {
+    var ri = roundInfo();
+    var boards = document.querySelectorAll('.arc-board[data-game]');
+    for (var i = 0; i < boards.length; i++) {
+      var b = boards[i];
+      if (force || Number(b.getAttribute('data-round')) !== ri.id) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = boardHTML(b.getAttribute('data-game'), b.getAttribute('data-heading'));
+        if (b.parentNode) b.parentNode.replaceChild(tmp.firstChild, b);
+      } else {
+        var cd = b.querySelector('.arc-cd');
+        if (cd) cd.textContent = fmtLeft(Number(cd.getAttribute('data-end')) - Date.now());
+      }
+    }
+  }
+  setInterval(function () { refreshBoards(false); }, 1000);
 
   function howTo(opts) {
     opts = opts || {};
@@ -181,6 +315,9 @@
       'border-radius:12px;padding:16px 20px;text-align:left;min-width:260px}',
       '.arc-title{font-size:11px;letter-spacing:2px;font-weight:800;color:var(--text-dim,#8b949e);',
       'margin-bottom:12px;text-align:center}',
+      '.arc-cd{color:var(--gold,#d29922);font-variant-numeric:tabular-nums}',
+      '.arc-prize{font-size:11px;letter-spacing:1.5px;font-weight:800;color:var(--gold,#d29922);',
+      'text-align:center;margin:-4px 0 10px}',
       '.arc-row{display:flex;align-items:center;gap:12px;padding:5px 0;font-variant-numeric:tabular-nums;',
       'border-bottom:1px solid rgba(255,255,255,.05)}',
       '.arc-row:last-child{border-bottom:none}',
@@ -188,6 +325,9 @@
       '.arc-name{flex:1;font-weight:800;letter-spacing:3px;font-size:17px}',
       '.arc-score{font-weight:800;font-size:17px;color:var(--gold,#d29922)}',
       '.arc-empty{opacity:.35}',
+      '.arc-foot{margin-top:10px;padding-top:9px;border-top:1px solid var(--border,#30363d);font-size:11px;',
+      'letter-spacing:1px;color:var(--text-dim,#8b949e);text-align:center;line-height:1.6}',
+      '.arc-foot b{color:var(--text,#e6edf3);letter-spacing:1.5px}',
       '.arc-steps{list-style:none;display:flex;flex-direction:column;gap:11px;padding:0;margin:0}',
       '.arc-steps li{display:flex;gap:11px;align-items:flex-start;font-size:15px;line-height:1.45}',
       '.arc-num{flex:none;width:23px;height:23px;border-radius:50%;background:var(--accent,#58a6ff);',
@@ -265,9 +405,12 @@
   }
 
   global.Arcade = {
-    top: top, qualifies: qualifies, submit: submit,
+    top: top, topRound: topRound, qualifies: qualifies, submit: submit,
     boardHTML: boardHTML, howTo: howTo,
     initialsHTML: initialsHTML, wireInitials: wireInitials,
-    backdrop: backdrop, ready: ready
+    backdrop: backdrop, ready: ready,
+    round: roundInfo, roundMinutes: roundMinutes, setRoundMinutes: setRoundMinutes,
+    lastRoundWinner: lastRoundWinner, clearBoards: clearBoards, refreshBoards: refreshBoards,
+    PRIZE_GAME: PRIZE_GAME
   };
 })(window);
