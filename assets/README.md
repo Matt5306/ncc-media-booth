@@ -45,5 +45,18 @@ the dove logo, plus some vertical talking-head clips. Checked on 2026-08-31.
 The lookup lives in `docs/js/arcade.js` as `Arcade.backdrop(url, callback)`.
 Each game calls it once on load with the filename it wants.
 
-- `loop-full-30s.mp4` — the full 30 s Canva export (2026-09-07, checks fixed). `loop.mp4` is the first 14 s of it with a 1 s fade, muted, for attract.html. Re-cut with:
-  `ffmpeg -i loop-full-30s.mp4 -t 14 -an -vf "fade=t=out:st=13:d=1" -c:v libx264 -crf 18 -pix_fmt yuv420p -movflags +faststart loop.mp4`
+- `loop-full-30s.mp4` — the full 30 s Canva export (2026-09-07, checks fixed). `loop.mp4` is the first 14 s of it with a 1 s fade, **with its audio kept and lowered 7 dB** (since 2026-09-12), for attract.html. Re-cut with:
+  `ffmpeg -i loop-full-30s.mp4 -t 14 -vf "fade=t=out:st=13:d=1" -af "volume=-7dB,afade=t=out:st=12.8:d=1.2" -c:v libx264 -crf 20 -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart loop.mp4`
+
+## TV sound (`audio/`)
+
+All four are Mixkit tracks (Mixkit License: free to use, no attribution needed). attract.html plays them only when opened with `?sound=1`, which `START-TV.bat` does; set `SOUND=0` in the bat to run silent. Levels live in `CONFIG.sound` at the top of attract.html.
+
+| File | What | Source |
+|---|---|---|
+| `audio/bed.mp3` | music under the slides, loops, -18 LUFS | Mixkit "Pop Track 03" |
+| `audio/cue.mp3` | movie-trailer cue from the finger reveal to the crew slide, -15 LUFS | Mixkit "I Won't Surrender" |
+| `audio/pop.mp3` | one per check in the video | Mixkit "Long pop" |
+| `audio/hit.mp3` | the impact as the finger photo fades in | Mixkit "Big cinematic impact" |
+
+To swap a track: drop the new MP3 over the old name. The team's alternates are in `docs/preview/audio/`.
