@@ -55,7 +55,7 @@ All four are Mixkit tracks (Mixkit License: free to use, no attribution needed).
 | File | What | Source |
 |---|---|---|
 | `audio/bed.mp3` | music under the slides, loops, -18 LUFS | Mixkit "Pop Track 03" |
-| `audio/cue.mp3` | movie-trailer cue from the finger reveal to the crew slide, -15 LUFS | Mixkit "I Won't Surrender" |
+| `audio/cue.mp3` | movie-trailer cue for the joke block. **Off** since 12 Sept (the switch felt jarring); set `cue` in `CONFIG.sound` to bring it back | Mixkit "I Won't Surrender" |
 | `audio/pop.mp3` | one per check in the video | Mixkit "Long pop" |
 | `audio/hit.mp3` | the impact as the finger photo fades in | Mixkit "Big cinematic impact" |
 
