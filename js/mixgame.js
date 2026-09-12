@@ -1,12 +1,15 @@
 /*
- * mixgame.js - the one mixing engine behind BOTH sound stations.
+ * mixgame.js - the mixing engine behind the Sound station.
  *
- *   Stream Sound  = viewers complain in a live chat, you fix the stream mix.
- *   House Sound   = people in the room react, you fix the house mix.
+ * One desk, one round. People in the room react (a wave, a wince, a hand over
+ * an ear) and people watching online type in the chat; each card is tagged
+ * ROOM or ONLINE via `src`, points at one channel, and that channel lights up
+ * gold until its fader sits in the band. `type:'feedback'` cards are the
+ * RINGING drill: short patience, pull it down fast, bonus for catching it.
  *
- * Same desk, same rules, different complaints. Haley's note from the team chat
- * was that the stream game is the honest picture of the job, so the house
- * station now runs on the same engine instead of four abstract mini-games.
+ * History: built as the Stream Sound game, then skinned twice (House Sound and
+ * Stream Sound), then merged into one Sound station on 12 Sept 2026 after the
+ * team play-test found two identical games redundant.
  *
  * The page supplies a CONFIG (channels, complaints, copy) and the markup with
  * the ids listed below. The engine does everything else.
@@ -141,8 +144,9 @@
       $('nowFixing').textContent = (c.type === 'feedback' ? 'RINGING: ' : 'Fix: ') + chName(c.ch);
 
       var m = document.createElement('div');
-      m.className = 'msg active' + (c.type === 'feedback' ? ' ringing' : '');
-      m.innerHTML = '<div class="u">' + c.who + '</div>' + c.text;
+      m.className = 'msg active' + (c.type === 'feedback' ? ' ringing' : '') + (c.src ? ' src-' + c.src : '');
+      var tag = c.src ? '<span class="tag">' + (c.type === 'feedback' ? 'RINGING' : c.src.toUpperCase()) + '</span>' : '';
+      m.innerHTML = '<div class="u">' + tag + c.who + '</div>' + c.text;
       $('msgs').insertBefore(m, $('msgs').firstChild);
       while ($('msgs').children.length > 5) $('msgs').removeChild($('msgs').lastChild);
     }

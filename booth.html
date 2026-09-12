@@ -99,8 +99,8 @@
 
   .grid {
     flex: 1; display: grid; gap: clamp(12px, 1.5vw, 20px); min-height: 0;
-    /* 230px lets all five stations sit in one row on a 1366-wide booth laptop,
-       which reads as "pick one of five" rather than leaving an orphan tile. */
+    /* 230px lets all four stations sit in one row on a 1366-wide booth laptop,
+       which reads as "pick one of four" rather than leaving an orphan tile. */
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     align-content: start; overflow-y: auto; padding-bottom: 10px;
   }
@@ -194,7 +194,7 @@
   <div class="grid" id="grid"></div>
 
   <div class="strip">
-    <span><b>Not sure?</b> Try House Sound &mdash; it is where most people start.</span>
+    <span><b>Not sure?</b> Try Sound &mdash; it is where most people start.</span>
     <span>&middot;</span>
     <span>Ask any of us what a <b>tally light</b> is. We love that question.</span>
     <button class="host-btn" id="hostBtn" title="Host settings">Host</button>
@@ -227,16 +227,10 @@
   // the tile still does recruiting work by explaining the job.
   var STATIONS = [
     {
-      icon: '🎚️', name: 'House Sound', role: 'THE ROOM',
+      icon: '🎚️', name: 'Sound', role: 'THE ROOM AND THE STREAM',
       colour: 'var(--accent)',
-      desc: 'Mix what the people in the building hear. Read the room, find the channel, and catch feedback before it screams.',
-      href: 'housesound-game.html', tag: 'Play now'
-    },
-    {
-      icon: '📡', name: 'Stream Sound', role: 'THE INTERNET',
-      colour: 'var(--green)',
-      desc: 'A completely separate mix for everyone watching online. The room can sound perfect while the stream sounds broken, and only you would know.',
-      href: 'streamsound-game.html', tag: 'Play now'
+      desc: 'Mix what everyone hears. The room reacts, the folks at home type in the chat, and a mic starts to ring. Find the channel, fix it, before they give up on you.',
+      href: 'sound-game.html', tag: 'Play now'
     },
     {
       icon: '🎥', name: 'Camera', role: 'THE SHOT',
