@@ -5,8 +5,9 @@
  *   1. A HOW TO PLAY card. Three steps, plain language, no jargon. Shown BEFORE
  *      play, because nobody at a booth reads instructions after they have lost.
  *   2. An arcade high-score board with three-letter initials, stored per game.
- *   3. PRIZE ROUNDS. The team hands a gift box to the top score every so often
- *      (30 minutes by default). Rounds are cut on the wall clock, so every
+ *   3. PRIZE ROUNDS. The team hands a $25 gift card to the top Camera score
+ *      every hour (60 minutes by default; everyone who signs up gets a gift box,
+ *      which is a different thing). Rounds are cut on the wall clock, so every
  *      device in the booth is on the same round with no server and no host
  *      action: 10:00-10:30, 10:30-11:00, and so on. The board shows THIS ROUND,
  *      a countdown, the LAST ROUND winner (so the host can collect it at their
@@ -25,7 +26,7 @@
  *   Arcade.initialsHTML()                             -> HTML for the entry row
  *   Arcade.wireInitials(rootEl, onDone)               -> makes that row work
  *   Arcade.round()                                    -> { id, start, end, len }
- *   Arcade.roundMinutes() / Arcade.setRoundMinutes(n) -> host setting, 30 by default
+ *   Arcade.roundMinutes() / Arcade.setRoundMinutes(n) -> host setting, 60 by default
  *   Arcade.lastRoundWinner('camera')                  -> { name, score } or null
  *   Arcade.clearBoards()                              -> wipes every board on this device
  *   Arcade.PRIZE_GAME                                 -> 'camera'
@@ -37,7 +38,7 @@
   var ROUND_KEY = 'nccMediaArcadeRoundMin';
   var KEEP = 5;
   var PRIZE_GAME = 'camera';
-  var DEFAULT_ROUND_MIN = 30;
+  var DEFAULT_ROUND_MIN = 60;
 
   // ---------------------------------------------------------------- storage
   // v2 shape: { __v:2, all:{ gameId:[entries] }, rounds:{ gameId:{ roundId:[entries] } } }
@@ -188,7 +189,7 @@
     var all = top(gameId, 1)[0];
     var last = lastRoundWinner(gameId);
     var prize = (gameId === PRIZE_GAME)
-      ? '<div class="arc-prize">&#127942; PRIZE GAME &middot; TOP SCORE THIS ROUND WINS A BOX</div>'
+      ? '<div class="arc-prize">&#127942; PRIZE GAME &middot; TOP SCORE THIS HOUR WINS A $25 GIFT CARD</div>'
       : '';
     return '<div class="arc-board" data-game="' + esc(gameId) + '" data-round="' + ri.id + '"' +
              ' data-heading="' + esc(heading || '') + '">' +

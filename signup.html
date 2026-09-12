@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<title>Media Team Sign-Up</title>
+<style>
+  /*
+   * SIGN-UP - the iPad at the exit.
+   *
+   * This is the booth's own sign-up page. Every submission is posted straight
+   * into the team's Google Form (the same one the media director reads), so
+   * nothing changes for the director; we just own the screen the visitor sees.
+   * That is what makes the email finisher buttons possible - Google's own form
+   * page cannot be changed.
+   *
+   * If the Wi-Fi is down when someone taps SEND, the entry is kept on this
+   * device and sent as soon as the connection is back. The small line at the
+   * bottom tells the host how many are waiting.
+   *
+   * BOOTH NOTES: resets itself a few seconds after every submission. No
+   * autofill, so one visitor never sees the previous visitor's details.
+   */
+  :root {
+    --bg:#0d1117; --panel:#161b22; --panel2:#21262d; --border:#30363d;
+    --text:#e6edf3; --dim:#8b949e; --accent:#58a6ff; --green:#3fb950;
+    --red:#f85149; --gold:#d29922;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:var(--bg); color:var(--text); user-select:none; overflow:hidden;
+  }
+  .screen { display:none; min-height:100vh; min-height:100dvh; flex-direction:column; }
+  .screen.active { display:flex; }
+
+  /* ---------- form ---------- */
+  #form { padding: clamp(14px, 2.2vh, 28px) clamp(16px, 3vw, 44px); gap: clamp(10px, 1.6vh, 18px); overflow-y:auto; }
+  .head { display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .head h1 { font-size:clamp(24px, 3.4vw, 40px); letter-spacing:-.5px; }
+  .head .sub { color:var(--dim); font-size:clamp(14px, 1.6vw, 19px); }
+  .kicker { font-size:12px; letter-spacing:3px; color:var(--accent); font-weight:800; }
+
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 2vw, 26px); align-items:start; }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+
+  .field { display:flex; flex-direction:column; gap:6px; margin-bottom: clamp(8px, 1.4vh, 14px); }
+  label { font-size:13px; letter-spacing:1.5px; font-weight:800; color:var(--dim); }
+  label b { color:var(--gold); font-weight:800; letter-spacing:0; }
+  input {
+    font:inherit; font-size:clamp(18px, 2vw, 22px); padding:14px 16px; border-radius:10px;
+    background:var(--panel); color:var(--text); border:2px solid var(--border); width:100%;
+  }
+  input:focus { outline:none; border-color:var(--accent); }
+  .field.bad input { border-color:var(--red); }
+  .err { font-size:13px; color:var(--red); min-height:1.1em; }
+
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip {
+    font:inherit; font-size:15px; font-weight:700; padding:10px 14px; border-radius:999px; cursor:pointer;
+    background:var(--panel2); color:var(--text); border:1px solid var(--border);
+  }
+  .chip:active { background:var(--accent); color:#04121f; }
+
+  .cards { display:grid; gap:8px; }
+  .card {
+    text-align:left; font:inherit; cursor:pointer; padding:12px 14px; border-radius:12px;
+    background:var(--panel); border:2px solid var(--border); color:var(--text); display:flex; gap:12px; align-items:flex-start;
+  }
+  .card .dot { flex:none; width:22px; height:22px; border-radius:50%; border:2px solid var(--dim); margin-top:2px; }
+  .card.on { border-color:var(--gold); background:#221d10; }
+  .card.on .dot { border-color:var(--gold); background:var(--gold); box-shadow: inset 0 0 0 4px #221d10; }
+  .card b { display:block; font-size:clamp(15px, 1.6vw, 18px); }
+  .card span { font-size:clamp(13px, 1.3vw, 15px); color:var(--dim); line-height:1.35; }
+
+  .stations { display:flex; flex-wrap:wrap; gap:8px; }
+  .st {
+    font:inherit; font-size:16px; font-weight:800; padding:12px 18px; border-radius:10px; cursor:pointer;
+    background:var(--panel); border:2px solid var(--border); color:var(--text);
+  }
+  .st.on { border-color:var(--c); color:var(--c); background:var(--panel2); }
+
+  .actions { display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:4px; }
+  .send {
+    font:inherit; font-size:clamp(18px, 2vw, 22px); font-weight:800; padding:16px 36px; border-radius:12px; cursor:pointer;
+    background:var(--green); color:#04180a; border:none; letter-spacing:.5px;
+  }
+  .send[disabled] { opacity:.6; cursor:default; }
+  .reset { font:inherit; font-size:14px; color:var(--dim); background:none; border:none; cursor:pointer; text-decoration:underline; }
+  .foot { font-size:12px; color:var(--dim); letter-spacing:1px; }
+  .foot b { color:var(--gold); }
+
+  /* ---------- thanks ---------- */
+  #thanks { align-items:center; justify-content:center; text-align:center; padding:32px; gap:18px; }
+  #thanks .big { font-size:clamp(40px, 7vw, 96px); font-weight:900; line-height:1; letter-spacing:-2px; }
+  #thanks .big em { font-style:normal; color:var(--gold); }
+  #thanks p { color:var(--dim); font-size:clamp(18px, 2.2vw, 28px); max-width:24ch; line-height:1.4; }
+  #thanks .next { margin-top:10px; font-size:14px; color:var(--dim); letter-spacing:2px; }
+  .dove { width:min(20vh, 160px); border-radius:50%; }
+</style>
+</head>
+<body>
+
+<!-- ============ FORM ============ -->
+<div class="screen active" id="form">
+  <div class="head">
+    <div>
+      <div class="kicker">NEW CREATION MEDIA TEAM</div>
+      <h1>Can you give 4 hours a month?</h1>
+      <div class="sub">Tell us how to reach you and pick one. Thirty seconds, then grab your gift box.</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="field" id="f-name">
+        <label for="name">FIRST AND LAST NAME <b>required</b></label>
+        <input id="name" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="next">
+        <div class="err" id="e-name"></div>
+      </div>
+      <div class="field" id="f-phone">
+        <label for="phone">PHONE <b>required</b></label>
+        <input id="phone" type="tel" inputmode="tel" autocomplete="off" enterkeyhint="next">
+        <div class="err" id="e-phone"></div>
+      </div>
+      <div class="field" id="f-email">
+        <label for="email">EMAIL <span style="letter-spacing:0;font-weight:400;color:var(--dim)">(optional)</span></label>
+        <input id="email" type="email" inputmode="email" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+        <div class="chips" id="chips">
+          <button type="button" class="chip" data-d="gmail.com">@gmail.com</button>
+          <button type="button" class="chip" data-d="yahoo.com">@yahoo.com</button>
+          <button type="button" class="chip" data-d="outlook.com">@outlook.com</button>
+          <button type="button" class="chip" data-d="icloud.com">@icloud.com</button>
+          <button type="button" class="chip" data-d="hotmail.com">@hotmail.com</button>
+          <button type="button" class="chip" data-d="aol.com">@aol.com</button>
+        </div>
+        <div class="err" id="e-email"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="field" id="f-choice">
+        <label>PICK ONE <b>required</b></label>
+        <div class="cards" id="cards"></div>
+        <div class="err" id="e-choice"></div>
+      </div>
+      <div class="field" id="f-stations">
+        <label>WHICH STATION DID YOU TRY? <b>tap all that apply</b></label>
+        <div class="stations" id="stations"></div>
+        <div class="err" id="e-stations"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="send" id="send">SEND IT</button>
+    <button class="reset" id="reset">Start over</button>
+    <span class="foot" id="queueNote"></span>
+  </div>
+</div>
+
+<!-- ============ THANKS ============ -->
+<div class="screen" id="thanks">
+  <img class="dove" src="assets/icon.png" alt="">
+  <div class="big">Thanks, <em id="tName">friend</em>.</div>
+  <p>Grab your <b>gift box</b> on the way out. Someone from the team will reach out within a week.</p>
+  <div class="next" id="countdown">NEXT PERSON IN 8</div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- the Google Form this page feeds (field codes pulled from the form itself)
+  var FORM = {
+    action: 'https://docs.google.com/forms/d/e/1FAIpQLSemU5J4rzFpjU02l0L-0zvfLJ4L0EWOuKlrhDGuNvzNwBC7Ew/formResponse',
+    name: 'entry.2078698479',
+    phone: 'entry.1919601254',
+    email: 'entry.1474002888',
+    choice: 'entry.1733625670',
+    stations: 'entry.120975150'
+  };
+  // Option text must match the Google Form exactly.
+  var CHOICES = [
+    { b: 'Once a month', s: 'I can serve 1 Sunday every month.',
+      v: 'Once a Month: I can serve 1 Sunday every month.' },
+    { b: 'Every other month', s: 'I can serve 1 Sunday every 2 months.',
+      v: 'Every Other Month: I can serve 1 Sunday every 2 months.' },
+    { b: 'Just a test drive', s: 'Do not put me on a schedule, just let me watch you work for 15 minutes next Sunday.',
+      v: 'Just a Test Drive: Do not put me on a schedule, just let me watch you work for 15 minutes next Sunday.' },
+    { b: 'The cheerleader', s: 'I cannot join right now, but I will pray for you and eat your extra donuts.',
+      v: 'The Cheerleader: I cannot join right now, but I will pray for you and eat your extra donuts.' }
+  ];
+  // The form still lists the two old sound stations; "Sound" is filed under House Sound.
+  var STATIONS = [
+    { t: 'Sound', v: 'House Sound', c: 'var(--accent)' },
+    { t: 'Camera', v: 'Camera', c: 'var(--gold)' },
+    { t: 'ProPresenter', v: 'ProPresenter', c: 'var(--purple, #a371f7)' },
+    { t: 'Lower Thirds', v: 'Lower Thirds', c: 'var(--pink, #f778ba)' }
+  ];
+  var QUEUE_KEY = 'nccSignupQueue';
+  var RESET_SECONDS = 8;
+
+  function $(id) { return document.getElementById(id); }
+  var state = { choice: null, stations: {} };
+
+  // ---- build the choice cards and station toggles
+  CHOICES.forEach(function (c, i) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'card';
+    b.innerHTML = '<span class="dot"></span><div><b>' + c.b + '</b><span>' + c.s + '</span></div>';
+    b.addEventListener('click', function () {
+      state.choice = c.v;
+      document.querySelectorAll('.card').forEach(function (el, j) { el.classList.toggle('on', j === i); });
+      clearErr('choice');
+    });
+    $('cards').appendChild(b);
+  });
+  STATIONS.forEach(function (s) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'st'; b.textContent = s.t; b.style.setProperty('--c', s.c);
+    b.addEventListener('click', function () {
+      state.stations[s.v] = !state.stations[s.v];
+      b.classList.toggle('on', !!state.stations[s.v]);
+      clearErr('stations');
+    });
+    $('stations').appendChild(b);
+  });
+
+  // ---- email finishers
+  $('chips').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    var box = $('email');
+    var v = box.value.trim();
+    var at = v.indexOf('@');
+    var user = at >= 0 ? v.slice(0, at) : v;
+    box.value = (user || '') + '@' + chip.getAttribute('data-d');
+    clearErr('email');
+    if (!user) { box.focus(); try { box.setSelectionRange(0, 0); } catch (err) { /* ignore */ } }
+  });
+
+  // ---- validation
+  function setErr(f, msg) { $('f-' + f).classList.add('bad'); $('e-' + f).textContent = msg; }
+  function clearErr(f) { $('f-' + f).classList.remove('bad'); $('e-' + f).textContent = ''; }
+  ['name', 'phone', 'email'].forEach(function (f) { $(f).addEventListener('input', function () { clearErr(f); }); });
+
+  function validate() {
+    var ok = true;
+    var name = $('name').value.trim();
+    if (name.length < 2) { setErr('name', 'We need a name to call you by.'); ok = false; }
+    var digits = $('phone').value.replace(/\D/g, '');
+    if (digits.length < 10) { setErr('phone', 'Ten digits, please, so we can actually reach you.'); ok = false; }
+    var email = $('email').value.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErr('email', 'That email is missing a piece. Or leave it blank.'); ok = false; }
+    if (!state.choice) { setErr('choice', 'Pick one. The cheerleader option is a real option.'); ok = false; }
+    if (!Object.keys(state.stations).some(function (k) { return state.stations[k]; })) {
+      setErr('stations', 'Tap at least one station.'); ok = false;
+    }
+    return ok;
+  }
+
+  // ---- sending: straight into the Google Form. Kept on-device if offline.
+  function payload() {
+    var fd = new FormData();
+    fd.append(FORM.name, $('name').value.trim());
+    fd.append(FORM.phone, $('phone').value.trim());
+    fd.append(FORM.email, $('email').value.trim());
+    fd.append(FORM.choice, state.choice);
+    Object.keys(state.stations).forEach(function (k) { if (state.stations[k]) fd.append(FORM.stations, k); });
+    return fd;
+  }
+  function serialize(fd) { var o = []; fd.forEach(function (v, k) { o.push([k, v]); }); return o; }
+  function deserialize(arr) { var fd = new FormData(); arr.forEach(function (p) { fd.append(p[0], p[1]); }); return fd; }
+
+  function post(fd) {
+    // no-cors: Google answers with an opaque response; a resolved promise means it got there.
+    return fetch(FORM.action, { method: 'POST', mode: 'no-cors', body: fd });
+  }
+
+  function readQueue() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch (e) { return []; } }
+  function writeQueue(q) { try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); } catch (e) { /* ignore */ } paintQueue(); }
+  function paintQueue() {
+    var n = readQueue().length;
+    $('queueNote').innerHTML = n ? '<b>' + n + '</b> WAITING FOR WI-FI. THEY WILL SEND THEMSELVES.' : '';
+  }
+  function flushQueue() {
+    var q = readQueue();
+    if (!q.length || !navigator.onLine) return;
+    var item = q[0];
+    post(deserialize(item)).then(function () {
+      q.shift(); writeQueue(q); flushQueue();
+    }).catch(function () { /* still offline; try again later */ });
+  }
+  window.addEventListener('online', flushQueue);
+  setInterval(flushQueue, 30000);
+
+  // ---- submit
+  var sending = false;
+  $('send').addEventListener('click', function () {
+    if (sending || !validate()) return;
+    sending = true; $('send').disabled = true;
+    var fd = payload();
+    var first = $('name').value.trim().split(/\s+/)[0];
+    var done = function () { sending = false; $('send').disabled = false; thanks(first); };
+    post(fd).then(done).catch(function () {
+      var q = readQueue(); q.push(serialize(fd)); writeQueue(q); done();
+    });
+  });
+
+  // ---- thanks, then reset for the next person
+  var resetTimer = null;
+  function thanks(first) {
+    $('tName').textContent = first || 'friend';
+    $('form').classList.remove('active'); $('thanks').classList.add('active');
+    var left = RESET_SECONDS;
+    $('countdown').textContent = 'NEXT PERSON IN ' + left;
+    clearInterval(resetTimer);
+    resetTimer = setInterval(function () {
+      left--; $('countdown').textContent = 'NEXT PERSON IN ' + left;
+      if (left <= 0) { clearInterval(resetTimer); reset(); }
+    }, 1000);
+  }
+  function reset() {
+    clearInterval(resetTimer);
+    ['name', 'phone', 'email'].forEach(function (f) { $(f).value = ''; clearErr(f); });
+    state.choice = null; state.stations = {};
+    document.querySelectorAll('.card, .st').forEach(function (el) { el.classList.remove('on'); });
+    clearErr('choice'); clearErr('stations');
+    $('thanks').classList.remove('active'); $('form').classList.add('active');
+    $('form').scrollTop = 0;
+  }
+  $('reset').addEventListener('click', reset);
+  $('thanks').addEventListener('pointerdown', reset);
+
+  // Exposed for the booth test rig; nothing in the page uses it.
+  window.__signup = { state: state, validate: validate, payload: payload, readQueue: readQueue, reset: reset };
+
+  paintQueue();
+  flushQueue();
+})();
+</script>
+</body>
+</html>
