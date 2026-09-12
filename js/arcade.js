@@ -349,7 +349,11 @@
       '.arc-ready-goal b{color:var(--gold,#d29922)}',
       '.arc-ready-tap{font-size:14px;letter-spacing:2.5px;font-weight:900;color:#04121f;background:var(--accent,#58a6ff);',
       'padding:14px 22px;border-radius:999px;display:inline-block;animation:arcPulse 1.6s ease-in-out infinite}',
-      '@keyframes arcPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}'
+      '@keyframes arcPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}',
+      '#arc-fs{position:fixed;left:10px;bottom:10px;z-index:60;font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
+      'letter-spacing:.5px;padding:9px 12px;border-radius:999px;border:1px solid var(--border,#30363d);',
+      'background:rgba(22,27,34,.85);color:var(--text-dim,#8b949e);cursor:pointer;opacity:.75}',
+      '#arc-fs:hover{opacity:1;color:var(--text,#e6edf3)}'
     ].join('');
     document.head.appendChild(css);
   }
@@ -404,7 +408,45 @@
     document.addEventListener('keydown', go);
   }
 
+  // ---------------------------------------------------------------- full screen
+  // iPads: Safari shows its address bar unless the page is either added to the
+  // home screen (best) or put into full screen with a tap. Fullscreen only lasts
+  // until the next page, so the button lives on every page that loads this file.
+  // Hidden when running from a home-screen icon, or when the browser cannot.
+  function fullscreenButton() {
+    if (document.getElementById('arc-fs')) return;
+    var standalone = false;
+    try {
+      standalone = (window.navigator.standalone === true) ||
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    } catch (e) { /* ignore */ }
+    var el = document.documentElement;
+    var req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (standalone || !req) return;
+    var b = document.createElement('button');
+    b.id = 'arc-fs';
+    b.type = 'button';
+    b.title = 'Full screen';
+    b.innerHTML = '&#x26F6; Full screen';
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      try { req.call(el); } catch (err) { /* ignore */ }
+    });
+    function sync() {
+      var on = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      b.style.display = on ? 'none' : '';
+    }
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    document.body.appendChild(b);
+    sync();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fullscreenButton);
+  } else { fullscreenButton(); }
+
   global.Arcade = {
+    fullscreenButton: fullscreenButton,
     top: top, topRound: topRound, qualifies: qualifies, submit: submit,
     boardHTML: boardHTML, howTo: howTo,
     initialsHTML: initialsHTML, wireInitials: wireInitials,
