@@ -217,7 +217,7 @@
   <button class="btn primary big" id="againBtn">Run It Again</button>
 </div>
 
-<script src="js/arcade.js"></script>
+<script src="js/arcade.js?v=20260912f"></script>
 <script>
 (function () {
   'use strict';
@@ -514,6 +514,7 @@
     }
 
     show('results');
+    if (Arcade.flowResults) Arcade.flowResults($('results'), GAME_ID);
     armIdle();
   }
 

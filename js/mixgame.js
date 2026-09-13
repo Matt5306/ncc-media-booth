@@ -270,6 +270,7 @@
       }
 
       show('results');
+      if (Arcade.flowResults) Arcade.flowResults($('results'), GAME_ID);
       armIdle();
     }
 

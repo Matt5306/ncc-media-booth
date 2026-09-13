@@ -160,6 +160,7 @@
   <div class="actions">
     <button class="send" id="send">SEND IT</button>
     <button class="reset" id="reset">Start over</button>
+    <a class="reset" id="backLink" href="booth.html" hidden>Back to the games</a>
     <span class="foot" id="queueNote"></span>
   </div>
 </div>
@@ -313,17 +314,31 @@
     });
   });
 
-  // ---- thanks, then reset for the next person
+  // ---- opened from a game's results screen (?back=1): after the thank-you,
+  // go back to the games hub instead of resetting for the next person.
+  var BACK = (function () {
+    try {
+      var b = new URLSearchParams(location.search).get('back');
+      if (!b) return null;
+      return /^[a-z0-9-]+\.html$/i.test(b) ? b : 'booth.html';
+    } catch (e) { return null; }
+  })();
+  var BACK_SECONDS = 6;
+  function goBack() { location.href = BACK; }
+  if (BACK) { $('backLink').href = BACK; $('backLink').hidden = false; }
+
+  // ---- thanks, then reset for the next person (or back to the games)
   var resetTimer = null;
   function thanks(first) {
     $('tName').textContent = first || 'friend';
     $('form').classList.remove('active'); $('thanks').classList.add('active');
-    var left = RESET_SECONDS;
-    $('countdown').textContent = 'NEXT PERSON IN ' + left;
+    var left = BACK ? BACK_SECONDS : RESET_SECONDS;
+    var label = BACK ? 'BACK TO THE GAMES IN ' : 'NEXT PERSON IN ';
+    $('countdown').textContent = label + left;
     clearInterval(resetTimer);
     resetTimer = setInterval(function () {
-      left--; $('countdown').textContent = 'NEXT PERSON IN ' + left;
-      if (left <= 0) { clearInterval(resetTimer); reset(); }
+      left--; $('countdown').textContent = label + left;
+      if (left <= 0) { clearInterval(resetTimer); if (BACK) goBack(); else reset(); }
     }, 1000);
   }
   function reset() {
@@ -336,7 +351,7 @@
     $('form').scrollTop = 0;
   }
   $('reset').addEventListener('click', reset);
-  $('thanks').addEventListener('pointerdown', reset);
+  $('thanks').addEventListener('pointerdown', function () { if (BACK) goBack(); else reset(); });
 
   // Exposed for the booth test rig; nothing in the page uses it.
   window.__signup = { state: state, validate: validate, payload: payload, readQueue: readQueue, reset: reset };

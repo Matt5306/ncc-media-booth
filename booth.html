@@ -211,12 +211,18 @@
       </span> min
     </div>
     <div class="host-row" id="roundNow"></div>
+    <div class="host-row">After a game
+      <span class="host-opts" id="flowOpts">
+        <button data-flow="on">Auto-return ON</button><button data-flow="off">OFF</button>
+      </span>
+    </div>
+    <div class="host-row host-note">ON: the results screen offers <b>Sign up</b> / <b>Play another game</b> and comes back to this page by itself after 40 s; a game nobody touches for 2 min comes back here too. OFF: games stay on their results screen, the old way. Per device.</div>
     <div class="host-row host-note">Rounds cut on the clock, so every station is on the same round. Top <b>Camera</b> score each hour wins the <b>$25 gift card</b>. Read the LAST ROUND line on any board. The gift box is for everyone who fills out the sign-up, not a prize.</div>
     <div class="host-row"><button class="host-danger" id="clearBoards">Clear all scores on this device</button></div>
   </div>
 </div>
 
-<script src="js/arcade.js"></script>
+<script src="js/arcade.js?v=20260912f"></script>
 <script>
 (function () {
   'use strict';
@@ -335,7 +341,20 @@
     var ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
     $('roundNow').textContent = 'Current round ends at ' + h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap +
       ' (' + Math.max(0, Math.ceil((r.end - Date.now()) / 60000)) + ' min left)';
+    if (A.flowEnabled) {
+      var on = A.flowEnabled();
+      var fb = $('flowOpts').querySelectorAll('button');
+      for (var j = 0; j < fb.length; j++) {
+        fb[j].classList.toggle('on', (fb[j].getAttribute('data-flow') === 'on') === on);
+      }
+    }
   }
+  $('flowOpts').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || !A || !A.setFlowEnabled) return;
+    A.setFlowEnabled(b.getAttribute('data-flow') === 'on');
+    paintHost();
+  });
   $('hostBtn').addEventListener('click', function (e) {
     e.stopPropagation();
     panel.hidden = !panel.hidden;

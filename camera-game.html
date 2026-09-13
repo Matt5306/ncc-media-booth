@@ -349,7 +349,7 @@
   <div class="hint">Ask a media team member what the tally light means. They love that question.</div>
 </div>
 
-<script src="js/arcade.js"></script>
+<script src="js/arcade.js?v=20260912f"></script>
 <script>
 (function () {
   'use strict';
@@ -934,6 +934,7 @@
     }
 
     show('results');
+    if (Arcade.flowResults) Arcade.flowResults($('results'), GAME_ID);
     armIdle();
   }
 

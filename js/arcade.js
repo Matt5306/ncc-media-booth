@@ -354,7 +354,18 @@
       '#arc-fs{position:fixed;left:10px;bottom:10px;z-index:60;font:700 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;',
       'letter-spacing:.5px;padding:9px 12px;border-radius:999px;border:1px solid var(--border,#30363d);',
       'background:rgba(22,27,34,.85);color:var(--text-dim,#8b949e);cursor:pointer;opacity:.75}',
-      '#arc-fs:hover{opacity:1;color:var(--text,#e6edf3)}'
+      '#arc-fs:hover{opacity:1;color:var(--text,#e6edf3)}',
+      '.arc-flow{position:sticky;bottom:0;margin-top:auto;width:100%;box-sizing:border-box;padding:12px 14px 10px;',
+      'background:rgba(13,17,23,.94);border-top:1px solid var(--border,#30363d);z-index:40;flex:none}',
+      '.arc-flow-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}',
+      '.arc-flow-btn{flex:1 1 240px;max-width:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;',
+      'gap:3px;min-height:64px;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:900;font-size:18px;',
+      'letter-spacing:1.5px;font-family:inherit;text-align:center}',
+      '.arc-flow-btn small{font-weight:600;font-size:12px;letter-spacing:.3px;opacity:.85}',
+      '.arc-flow-signup{background:var(--gold,#d29922);color:#1a1200}',
+      '.arc-flow-hub{background:var(--accent,#58a6ff);color:#04121f}',
+      '.arc-flow-cd{margin-top:9px;text-align:center;font-size:13px;color:var(--text-dim,#8b949e);letter-spacing:.5px}',
+      '.arc-flow-cd b{color:var(--gold,#d29922);font-variant-numeric:tabular-nums}'
     ].join('');
     document.head.appendChild(css);
   }
@@ -446,8 +457,93 @@
     document.addEventListener('DOMContentLoaded', fullscreenButton);
   } else { fullscreenButton(); }
 
+  // ---------------------------------------------------------------- flow
+  // What happens AFTER a game, so a station never sits on a dead results
+  // screen. A bar on the results screen: SIGN UP (30 seconds) or PLAY ANOTHER
+  // GAME, with a countdown back to the games hub. Anywhere else in a game, two
+  // minutes with nobody touching sends the iPad back to the hub as well.
+  //
+  // ROLLBACK: the Host panel on booth.html switches it off per device
+  // (localStorage nccMediaFlow=off), or set FLOW.enabled=false here for all.
+  // The results countdown is shorter than each game's own 45 s idle-to-menu,
+  // so the hub wins. ?flowsec=N on a game URL shortens the countdown for tests.
+  var FLOW = { enabled: true, resultsSec: 40, idleSec: 120, hub: 'booth.html', signup: 'signup.html?back=1' };
+  var FLOW_KEY = 'nccMediaFlow';
+  function flowEnabled() {
+    if (!FLOW.enabled) return false;
+    try { return localStorage.getItem(FLOW_KEY) !== 'off'; } catch (e) { return true; }
+  }
+  function setFlowEnabled(on) {
+    try { localStorage.setItem(FLOW_KEY, on ? 'on' : 'off'); } catch (e) { /* ignore */ }
+  }
+  function flowSeconds() {
+    try {
+      var n = parseInt(new URLSearchParams(location.search).get('flowsec'), 10);
+      if (n >= 3 && n <= 600) return n;
+    } catch (e) { /* ignore */ }
+    return FLOW.resultsSec;
+  }
+  var flowTimer = null, flowLeft = 0;
+  var FLOW_EVENTS = ['pointerdown', 'keydown', 'touchstart'];
+  function flowResults(root, gameId) {
+    if (!root || !flowEnabled()) return;
+    var old = root.querySelector('.arc-flow');
+    if (old) old.parentNode.removeChild(old);
+    clearInterval(flowTimer);
+    var bar = document.createElement('div');
+    bar.className = 'arc-flow';
+    bar.innerHTML =
+      '<div class="arc-flow-btns">' +
+        '<a class="arc-flow-btn arc-flow-signup" href="' + FLOW.signup + '">SIGN UP<small>30 seconds. Gift box at the exit.</small></a>' +
+        '<a class="arc-flow-btn arc-flow-hub" href="' + FLOW.hub + '">PLAY ANOTHER GAME<small>Sound, Camera, ProPresenter, Lower Thirds</small></a>' +
+      '</div>' +
+      '<div class="arc-flow-cd">Back to the games in <b>' + flowSeconds() + '</b> s. Tap anything to stay.</div>';
+    root.appendChild(bar);
+    flowLeft = flowSeconds();
+    var b = bar.querySelector('.arc-flow-cd b');
+    function bump() { flowLeft = flowSeconds(); if (b) b.textContent = flowLeft; }
+    FLOW_EVENTS.forEach(function (e) { document.addEventListener(e, bump, true); });
+    function stop() {
+      clearInterval(flowTimer);
+      FLOW_EVENTS.forEach(function (e) { document.removeEventListener(e, bump, true); });
+    }
+    flowTimer = setInterval(function () {
+      if (!root.classList.contains('active')) {   // Run It Again, or the game moved on
+        stop();
+        if (bar.parentNode) bar.parentNode.removeChild(bar);
+        return;
+      }
+      flowLeft--;
+      if (b) b.textContent = Math.max(0, flowLeft);
+      if (flowLeft <= 0) { stop(); location.href = FLOW.hub; }
+    }, 1000);
+  }
+  // Nobody touching a game for idleSec -> hub. Never in the middle of a round.
+  var flowIdleT = null;
+  function flowIdle() {
+    if (!flowEnabled()) return;
+    function arm() {
+      clearTimeout(flowIdleT);
+      flowIdleT = setTimeout(function () {
+        var g = document.getElementById('game');
+        if (g && g.classList.contains('active')) { arm(); return; }
+        location.href = FLOW.hub;
+      }, FLOW.idleSec * 1000);
+    }
+    FLOW_EVENTS.forEach(function (e) { document.addEventListener(e, arm, true); });
+    arm();
+  }
+  // Every game page has #game and #results; the hub and the sign-up page do not.
+  function flowAuto() {
+    if (document.getElementById('game') && document.getElementById('results')) flowIdle();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', flowAuto);
+  } else { flowAuto(); }
+
   global.Arcade = {
     fullscreenButton: fullscreenButton,
+    flowResults: flowResults, flowIdle: flowIdle, flowEnabled: flowEnabled, setFlowEnabled: setFlowEnabled, FLOW: FLOW,
     top: top, topRound: topRound, qualifies: qualifies, submit: submit,
     boardHTML: boardHTML, howTo: howTo,
     initialsHTML: initialsHTML, wireInitials: wireInitials,
