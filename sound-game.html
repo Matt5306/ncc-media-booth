@@ -53,7 +53,7 @@
   .btn.big { padding:19px 44px; font-size:21px; }
 
   .screen { display:none; height:calc(100vh - 57px); height:calc(100dvh - 57px); }
-  .screen.active { display:flex; }
+  .screen.active { display:flex; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
 
   /* ---------- menu ---------- */
   #menu { flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:24px; text-align:center; }

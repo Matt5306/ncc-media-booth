@@ -68,7 +68,7 @@
 
   /* ---------- screens ---------- */
   .screen { display: none; height: calc(100vh - 57px); height: calc(100dvh - 57px); }
-  .screen.active { display: flex; }
+  .screen.active { display: flex; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 
   #attract, #results {
     flex-direction: column; align-items: center; justify-content: center;

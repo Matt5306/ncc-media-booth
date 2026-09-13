@@ -40,7 +40,7 @@
     background: var(--bg); color: var(--text); user-select: none;
   }
 
-  .screen { display: none; height: 100vh; height: 100dvh; flex-direction: column; }
+  .screen { display: none; height: 100vh; height: 100dvh; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .screen.active { display: flex; }
 
   /* ---------------- attract ---------------- */
