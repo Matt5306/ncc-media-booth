@@ -202,6 +202,33 @@
 
   .hint { font-size: 12px; color: var(--text-dim); text-align: center; line-height: 1.5; }
 
+  /* ---------- touch joystick on the picture ----------
+     Drag anywhere on the viewfinder: the camera moves the way you drag, faster
+     the further you pull, like the real joystick. Two fingers pinch to zoom.
+     Added 13 Sept after the iPad test: the arrow buttons were too small to
+     drive at speed with a thumb. Buttons stay for keyboard/mouse people. */
+  .viewfinder { touch-action: none; }
+  .stick-ring {
+    position: absolute; width: 170px; height: 170px; margin: -85px 0 0 -85px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.4); background: rgba(0,0,0,.18); display: none; pointer-events: none; z-index: 5;
+  }
+  .stick-ring i {
+    position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%;
+    background: var(--accent); opacity: .9; display: block; box-shadow: 0 4px 16px rgba(0,0,0,.5);
+  }
+  .touchhint {
+    position: absolute; left: 50%; top: 48px; transform: translateX(-50%); z-index: 6;
+    background: rgba(0,0,0,.62); color: #fff; font-size: 15px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+    display: none; pointer-events: none; white-space: nowrap;
+  }
+  .touch-only { display: none; }
+  @media (pointer: coarse) {
+    .touchhint { display: block; }
+    .touch-only { display: inline; }
+    .pad { min-height: 72px; font-size: 28px; }
+    .controls { width: 300px; }
+  }
+
   /* ---------- results ---------- */
   .grade { font-size: 82px; font-weight: 900; line-height: 1; }
   .scoreline { font-size: 22px; color: var(--text-dim); }
@@ -231,12 +258,13 @@
     .call { min-width: 0; padding: 7px 12px; }
     .call .what { font-size: 15px; }
     .call .why { display: none; }
-    .pad { padding: 11px 0; font-size: 19px; }
+    .pad { padding: 14px 0; font-size: 26px; min-height: 64px; }
     .controls { padding: 10px; gap: 8px; }
     .controls .hint { display: none; }
     .stage { flex-direction: column; }
-    .controls { width: 100%; flex-direction: row; align-items: center; }
-    .dpad { flex: 1; max-width: 210px; }
+    .controls { width: 100%; flex-direction: row; align-items: center; justify-content: center; }
+    .dpad { flex: 1; max-width: 270px; }
+    .zoomrow { flex: 1; max-width: 200px; }
   }
 </style>
 </head>
@@ -308,6 +336,7 @@
         <div class="lockbar" id="lockbar"><i id="lockfill"></i></div>
         <div class="shakewarn" id="shake">TOO JERKY &mdash; EASE INTO IT</div>
         <div class="flash" id="flash"></div>
+        <div class="touchhint" id="touchHint">Drag the picture to move the camera. Pinch to zoom.</div>
       </div>
     </div>
 
@@ -790,6 +819,13 @@
     // Stick wins while it is being moved; keys still work if someone lets go of
     // the controller and reaches for the keyboard, which happens constantly.
     var stickLive = pad.active && (pad.x || pad.y || pad.z);
+    // A finger dragging on the picture is a stick too (proportional, so the same
+    // smoothness rules apply). Pinch zoom is consumed once per frame.
+    if (!stickLive && tstick.active) {
+      pad = { active: true, x: tstick.x, y: tstick.y, z: tstick.z };
+      tstick.z = 0;
+      stickLive = !!(pad.x || pad.y || pad.z);
+    }
     if (stickLive) {
       ax = pad.x; ay = pad.y; az = pad.z;
     } else {
@@ -984,6 +1020,80 @@
     });
   });
 
+  // ---------------------------------------------------------------- touch stick
+  // Drag anywhere on the picture. Where the finger lands is the stick's centre;
+  // how far it is pulled (up to R px) is the deflection, so a nudge creeps and a
+  // shove swings, like the real PTZ joystick. A second finger pinches to zoom.
+  // A mouse drag works the same way. Feeds the gamepad path in tick().
+  var tstick = { active: false, x: 0, y: 0, z: 0 };
+  (function () {
+    var vf = $('vf');
+    if (!vf) return;
+    var R = 80, pts = {}, order = [], anchor = null, lastDist = 0;
+    var ring = document.createElement('div');
+    ring.className = 'stick-ring'; ring.innerHTML = '<i></i>';
+    vf.appendChild(ring);
+    var knob = ring.firstChild, hint = $('touchHint');
+
+    function update() {
+      if (!order.length) {
+        tstick.active = false; tstick.x = tstick.y = tstick.z = 0;
+        ring.style.display = 'none';
+        return;
+      }
+      var p = pts[order[0]];
+      var dx = p.x - anchor.x, dy = p.y - anchor.y;
+      var len = Math.sqrt(dx * dx + dy * dy);
+      var k = len > R ? R / len : 1;
+      tstick.active = true;
+      tstick.x = (dx * k) / R;
+      tstick.y = (dy * k) / R;
+      knob.style.transform = 'translate(' + (dx * k) + 'px,' + (dy * k) + 'px)';
+      if (order.length >= 2) {
+        var q = pts[order[1]];
+        var d = Math.sqrt((q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y));
+        if (lastDist) tstick.z = Math.max(-1, Math.min(1, (d - lastDist) / 6));
+        lastDist = d;
+      } else {
+        lastDist = 0;
+      }
+    }
+    vf.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault();
+      try { vf.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      order.push(e.pointerId);
+      if (!anchor) {
+        anchor = { x: e.clientX, y: e.clientY };
+        var r = vf.getBoundingClientRect();
+        ring.style.left = (anchor.x - r.left) + 'px';
+        ring.style.top = (anchor.y - r.top) + 'px';
+        ring.style.display = 'block';
+        knob.style.transform = 'translate(0,0)';
+        if (hint) hint.style.display = 'none';
+      }
+      update();
+    });
+    vf.addEventListener('pointermove', function (e) {
+      if (!pts[e.pointerId]) return;
+      pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+      update();
+    });
+    function end(e) {
+      if (!pts[e.pointerId]) return;
+      delete pts[e.pointerId];
+      order = order.filter(function (id) { return id !== e.pointerId; });
+      if (!order.length) { anchor = null; lastDist = 0; }
+      update();
+    }
+    vf.addEventListener('pointerup', end);
+    vf.addEventListener('pointercancel', end);
+    window.addEventListener('blur', function () { pts = {}; order = []; anchor = null; lastDist = 0; update(); });
+    // for the booth test rig
+    window.__cam = { get cam() { return cam; }, stick: tstick, held: held };
+  })();
+
   // ---------------------------------------------------------------- boot
   function begin() {
     var btn = $('startBtn');
@@ -995,7 +1105,7 @@
       applyCam();
       show('game');
       Arcade.ready($('game'),
-        'The director calls a shot at the top. Move the camera until the <b>gold box lines up with the edges</b> of the picture, then hold still.',
+        'The director calls a shot at the top. Move the camera until the <b>gold box lines up with the edges</b> of the picture, then hold still.<span class="touch-only"><br><br><b>Drag on the picture</b> to move the camera. Pinch to zoom.</span>',
         startRound);
     });
   }
@@ -1015,7 +1125,7 @@
           'A gold dashed box shows the shot you were asked for. Move the camera until that box <b>lines up with the edges of the picture</b>.',
           'Hold it still for a moment and the shot locks in. Smooth beats fast.'
         ],
-        controls: 'Arrow keys, the on-screen arrows, or a plugged-in game controller.'
+        controls: 'On a touchscreen, drag on the picture and pinch to zoom. Or arrow keys, the on-screen arrows, or a plugged-in game controller.'
       }) +
       Arcade.boardHTML(GAME_ID, 'HIGH SCORES');
   }
