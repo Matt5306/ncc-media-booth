@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Matt's setup guide, step by step</title>
+<style>
+  :root { --ink:#15151a; --dim:#5b5b66; --line:#dcdce4; --gold:#a87f12; --green:#1f8a3c; --red:#c8452d; --blue:#2f6fde; --soft:#f5f5f8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: var(--ink); font: 17px/1.5 -apple-system, "Segoe UI", Arial, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 22px 18px 60px; }
+  .kicker { font-size: 12px; letter-spacing: 2.5px; color: var(--gold); font-weight: 800; text-transform: uppercase; }
+  h1 { font-size: 30px; line-height: 1.15; margin: 4px 0 8px; }
+  h1 em { font-style: normal; color: var(--gold); }
+  h2 { font-size: 21px; margin: 34px 0 6px; padding-top: 14px; border-top: 3px solid var(--ink); }
+  h2 small { display: block; font-size: 14px; font-weight: 400; color: var(--dim); margin-top: 2px; }
+  h3 { font-size: 17px; margin: 18px 0 4px; color: var(--gold); }
+  p { margin: 8px 0; }
+  .dim { color: var(--dim); }
+  ol, ul { padding-left: 24px; margin: 8px 0; }
+  li { margin: 7px 0; }
+  code, .type { font-family: Consolas, Menlo, monospace; background: var(--soft); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font-size: .92em; white-space: nowrap; }
+  .box { border: 1px solid var(--line); border-left: 6px solid var(--gold); border-radius: 8px; padding: 10px 14px; margin: 12px 0; background: #fffdf6; }
+  .box.red { border-left-color: var(--red); background: #fff8f6; }
+  .box.green { border-left-color: var(--green); background: #f6fcf7; }
+  .toc a { display: block; padding: 7px 0; border-bottom: 1px solid var(--line); color: var(--blue); text-decoration: none; }
+  a { color: var(--blue); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 10px 0; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); }
+  .links a { display: block; padding: 10px 12px; margin: 8px 0; border: 1px solid var(--line); border-radius: 8px; text-decoration: none; }
+  .links a b { display: block; color: var(--ink); } .links a span { color: var(--dim); font-size: 14px; }
+  @media print { body { font-size: 11pt; } h2 { page-break-after: avoid; } .box, li, tr { page-break-inside: avoid; } a { color: inherit; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Media team booth &middot; setup day &middot; Saturday 19 Sept 2026</div>
+  <h1>Matt's setup guide. <em>Every step, in order.</em></h1>
+  <p class="dim">Written so you can do all of it from any computer and the iPads, without the home PC. Do the parts in this order. Tick them off on the <a href="setup-day-plan.pdf">Setup Day Plan</a>.</p>
+
+  <div class="toc">
+    <a href="#p1">1. Before you leave the home PC: get the TV loop files (5 min)</a>
+    <a href="#p2">2. The TV laptop (15 min)</a>
+    <a href="#p3">3. Each iPad, three of them (15 min each)</a>
+    <a href="#p4">4. The exit-table laptop (10 min)</a>
+    <a href="#p5">5. The three LED floor rolls (10 min)</a>
+    <a href="#p6">6. Tonight in the gym: your jobs, in order</a>
+    <a href="#p7">7. Before anyone leaves: the test list</a>
+    <a href="#p8">8. Overnight, and Sunday morning</a>
+    <a href="#p9">9. If something goes wrong</a>
+    <a href="#p10">10. Every link in one place</a>
+  </div>
+
+  <!-- ===================================================== 1 -->
+  <h2 id="p1">1. Before you leave the home PC: get the TV loop files <small>This is the only thing that lives on that computer. Everything else is on the web.</small></h2>
+  <p>The TV loop (the video, the music, the slides) plays from a folder on the laptop, not from the internet. The laptop that goes to the fair needs two things sitting side by side: the file <b>START-TV.bat</b> and the folder <b>docs</b>.</p>
+  <div class="box green"><b>If the home PC is the laptop going to the fair:</b> nothing to copy. It is already there, in <code>C:\Users\mstat\projects\X32-Haley-tool</code>. Go to part 2.</div>
+
+  <h3>Way A: USB stick (best, do it before you leave)</h3>
+  <ol>
+    <li>Plug a USB stick into the home PC.</li>
+    <li>Open <b>File Explorer</b> (the yellow folder icon). Click the address bar at the top, type <code>C:\Users\mstat\projects\X32-Haley-tool</code> and press Enter.</li>
+    <li>Click <b>START-TV.bat</b> once. Hold <b>Ctrl</b> and click the <b>docs</b> folder. Both are now highlighted.</li>
+    <li>Right-click one of them and choose <b>Copy</b>.</li>
+    <li>Click the USB stick in the left column. Right-click an empty spot and choose <b>Paste</b>. It is about 80 MB, so give it a minute.</li>
+    <li>Eject the stick. Done.</li>
+  </ol>
+
+  <h3>Way B: no USB, from any computer</h3>
+  <p>Everything is also saved in your private GitHub project, so any computer with internet can download it. You need your GitHub password (and the code from your phone if it asks).</p>
+  <ol>
+    <li>On the laptop going to the fair, open Chrome and go to <a href="https://github.com/Matt5306/X32-Haley-tool">github.com/Matt5306/X32-Haley-tool</a>. Sign in as <b>Matt5306</b>. (If you see a "404" page you are not signed in yet.)</li>
+    <li>Click the green <b>Code</b> button, then <b>Download ZIP</b>. Wait for it to finish.</li>
+    <li>Open the <b>Downloads</b> folder. Right-click the ZIP, choose <b>Extract All</b>, then <b>Extract</b>.</li>
+    <li>Open the new folder (and the folder inside it) until you see <b>START-TV.bat</b> and <b>docs</b> next to each other. That folder is your Booth folder. Leave everything else in it alone.</li>
+  </ol>
+  <div class="box red"><b>Not sure you remember the GitHub password?</b> Then do Way A before you leave. Way B is the backup.</div>
+
+  <!-- ===================================================== 2 -->
+  <h2 id="p2">2. The TV laptop <small>Goal: double-click one file and the loop fills the screen with sound.</small></h2>
+  <ol>
+    <li>Make a folder on the Desktop called <b>Booth</b>. Put <b>START-TV.bat</b> and the <b>docs</b> folder inside it, side by side. (From the USB: copy both, paste into Booth. From the ZIP: you can just use the extracted folder.)</li>
+    <li>Check the laptop has <b>Chrome</b>. If it does not, Edge works too; you do not need to install anything.</li>
+    <li>Double-click <b>START-TV.bat</b>.
+      <ul><li>If a blue box says <b>"Windows protected your PC"</b>: click <b>More info</b>, then <b>Run anyway</b>. That is normal for a downloaded file.</li></ul></li>
+    <li>A small black window opens, then the browser fills the whole screen. You should hear a rising sound, three pops, then music under the slides.</li>
+    <li>Watch one full cycle, about two and a half minutes. Check your slide says <b>"ProPresenter button pusher extraordinaire."</b></li>
+    <li>To stop: press <b>Alt + F4</b>, then close the small black window.</li>
+    <li>Stop the laptop sleeping: <b>Start</b> &gt; <b>Settings</b> &gt; <b>System</b> &gt; <b>Power</b> (or Power &amp; battery) &gt; <b>Screen and sleep</b>. Set both "when plugged in" options to <b>Never</b>.</li>
+  </ol>
+  <div class="box"><b>Keys while it runs:</b> Space pauses. Left and right arrows step through slides. V jumps back to the video. <b>To make it quieter or silent:</b> use the TV remote. That is the easiest volume knob you have.</div>
+
+  <!-- ===================================================== 3 -->
+  <h2 id="p3">3. Each iPad, three of them <small>All three are game stations. Do every step on every iPad.</small></h2>
+  <h3>A. Wi-Fi</h3>
+  <ol>
+    <li>Open <b>Settings</b> (grey gear). Tap <b>Wi-Fi</b>. Join whatever Wi-Fi you are on right now. Tonight in the gym you will join the gym Wi-Fi the same way.</li>
+  </ol>
+  <h3>B. Put the booth on the home screen</h3>
+  <ol>
+    <li>Open <b>Safari</b> (blue compass). Tap the address bar, type <span class="type">tinyurl.com/ncc-booth</span>, tap <b>Go</b>.</li>
+    <li>Wait for "Can you run a Sunday production?"</li>
+    <li>Tap the <b>Share</b> button: the square with an arrow pointing up, top right.</li>
+    <li>Scroll down the list, tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
+    <li>Go to the home screen. There is now a dove icon called <b>Media Booth</b>. Always open the booth from that icon.</li>
+  </ol>
+  <h3>C. Screen, clock, camera</h3>
+  <ol>
+    <li><b>Settings</b> &gt; <b>Display &amp; Brightness</b> &gt; <b>Auto-Lock</b> &gt; <b>Never</b>. Drag brightness most of the way up.</li>
+    <li><b>Settings</b> &gt; <b>General</b> &gt; <b>Date &amp; Time</b> &gt; <b>Set Automatically</b> on. (The hourly prize depends on every iPad agreeing on the time.)</li>
+    <li>Open the <b>Media Booth</b> icon, tap <b>Camera</b>, tap <b>Play</b>. When it asks to use the camera, tap <b>Allow</b>. If you tapped the wrong one: Settings &gt; Safari &gt; Camera &gt; Allow.</li>
+  </ol>
+  <h3>D. The Host panel</h3>
+  <ol>
+    <li>On the booth's main page, tap the small <b>Host</b> button at the bottom of the list of games.</li>
+    <li>Round length: <b>60</b>.</li>
+    <li>"After a game": <b>ON</b>.</li>
+    <li>Tap <b>Clear all scores on this device</b>. Close the panel.</li>
+  </ol>
+  <h3>E. Guided Access (locks the iPad to the booth)</h3>
+  <ol>
+    <li><b>Settings</b> &gt; <b>Accessibility</b> &gt; <b>Guided Access</b>. Turn it <b>on</b>.</li>
+    <li><b>Passcode Settings</b> &gt; <b>Set Guided Access Passcode</b>. Use the same number on all three. Write it on tape on the back of each iPad.</li>
+    <li>Test it: open the Media Booth icon, <b>triple-click the top button</b> (or the round Home button on an older iPad), tap <b>Start</b>. To get out: triple-click again, type the passcode, tap <b>End</b>.</li>
+  </ol>
+  <h3>F. Play it once, on one iPad</h3>
+  <ol>
+    <li>Play one full round of <b>all four games</b>: Sound, Camera, ProPresenter, Lower Thirds.</li>
+    <li>At the end of each you should see a score, then two buttons: <b>SIGN UP</b> and <b>PLAY ANOTHER GAME</b>, with a countdown.</li>
+    <li>In the Camera game, put a thumb on the picture and drag: that is the joystick. Pinch to zoom.</li>
+    <li>Tap <b>SIGN UP</b> once and look at the form. You do not need to submit it now; you will do one real test tonight.</li>
+  </ol>
+  <h3>G. Charge all three</h3>
+
+  <!-- ===================================================== 4 -->
+  <h2 id="p4">4. The exit-table laptop <small>Goal: the sign-up list on screen, updating by itself, so Elsie can check a name before a box goes out.</small></h2>
+  <ol>
+    <li>Open Chrome and sign in to the <b>Google account that owns the sign-up form</b>.</li>
+    <li>Go to <a href="https://forms.google.com">forms.google.com</a>. Click the sign-up form to open it.</li>
+    <li>Click the <b>Responses</b> tab at the top. Click the green <b>Sheets</b> icon ("View in Sheets"). The list opens as a spreadsheet in a new tab.</li>
+    <li>Press <b>Ctrl + D</b> to bookmark that spreadsheet. Name it <b>SIGN-UPS</b>.</li>
+    <li>Find the row that says <b>Test Entry (delete me)</b>. Right-click its row number on the far left, choose <b>Delete row</b>.</li>
+    <li>Back on the form tab: the three dots at the top right &gt; <b>Add collaborators</b> &gt; type <span class="type">media@newcreationchog.org</span> &gt; Editor &gt; Send. (Skip if already done.)</li>
+    <li>Open one more tab with <span class="type">tinyurl.com/ncc-booth-signup</span>. That is for anyone who has no phone: they sign up right there on the laptop.</li>
+    <li>Same sleep setting as the TV laptop: Settings &gt; System &gt; Power &gt; Screen and sleep &gt; <b>Never</b> when plugged in.</li>
+  </ol>
+  <div class="box"><b>How it works tomorrow:</b> new sign-ups drop in at the <b>bottom</b> of the spreadsheet by themselves, usually within a few seconds. No refresh needed. Elsie asks "What name did you put?", sees it at the bottom, hands over a box and a water.</div>
+
+  <!-- ===================================================== 5 -->
+  <h2 id="p5">5. The three LED floor rolls <small>Find a bad one now, not on the gym floor.</small></h2>
+  <ol>
+    <li>Plug in each roll, one at a time. Press a <b>colour button</b> on the remote (not just the power button) to force it on.</li>
+    <li>All three light the whole way along? Set all three to the <b>same colour</b>.</li>
+    <li>Where the roll plugs into the little white controller box there is a <b>4-pin plug</b>. That was the loose joint last time. Push it fully home and wrap it with tape.</li>
+    <li>New two-roll kit: do both rolls plug into <b>one</b> controller box? See how far apart the two rolls can start. You want 3 feet. If they only reach a foot, no problem: tonight, run the first foot of each roll sideways along the back wall, then turn toward the entrance.</li>
+    <li>Do <b>not</b> join two rolls end to end. One roll per plug.</li>
+    <li>If the new kit never arrived: tonight use the one good roll as the line to the exit table and skip the lane.</li>
+  </ol>
+
+  <!-- ===================================================== 6 -->
+  <h2 id="p6">6. Tonight in the gym: your jobs, in order <small>Everyone else's jobs are on the Setup Day Plan, page 1. The drawing is the Build Plan, page 1.</small></h2>
+  <ol>
+    <li><b>Find the outlet first</b>, before any tent goes up. Plug a phone charger into it and check the phone charges. If that outlet is dead, find the next one now; the tent's back-left corner wants to be near it.</li>
+    <li>Ask whoever runs the building <b>which tape is allowed on the gym floor</b>. Gaffer tape is the safe answer.</li>
+    <li><b>Frames up</b> with everyone: two tents side by side, backs to the gym wall, weights on all six legs.</li>
+    <li><b>Power, with Dakota:</b>
+      <ul>
+        <li>Extension cord from the outlet to the <b>8-outlet strip</b>, inside the tent, back-left corner.</li>
+        <li>Second extension cord from that strip, along the bottom of the back wall, to the <b>back-right corner</b>. Small power strip on the end. It will live under the exit table.</li>
+        <li>The TV's cord runs down the inside of the left wall and out under the entrance flap to the TV table.</li>
+        <li>Tape every cord flat wherever feet go.</li>
+      </ul></li>
+    <li><b>TV table</b> outside, to the right of the entrance. TV on it facing where the line will stand, laptop behind the TV.
+      <ul>
+        <li>HDMI cable: laptop to TV. TV remote: pick that HDMI input.</li>
+        <li>On the laptop, click the <b>speaker icon</b> bottom right, click the arrow next to the volume bar, and pick the <b>TV</b> as the output.</li>
+        <li>Double-click <b>START-TV.bat</b>. Walk to where the rope will be. Set the volume with the TV remote: clear, but you can still talk over it.</li>
+      </ul></li>
+    <li><b>iPads:</b> join the gym Wi-Fi on each (Settings &gt; Wi-Fi). Open the Media Booth icon once on each so it loads. Clamp each onto its tripod. Charger cable down a tripod leg to the USB block on the corner strip; tape it to the leg and the floor.</li>
+    <li><b>Exit laptop</b> on the exit table, charger into the small strip under the table, SIGN-UPS spreadsheet open, screen facing the worker's side.</li>
+    <li><b>Run the test list</b> (part 7) with everyone.</li>
+    <li><b>Shut down</b> (part 8).</li>
+  </ol>
+
+  <!-- ===================================================== 7 -->
+  <h2 id="p7">7. Before anyone leaves: the test list</h2>
+  <ol>
+    <li><b>Wi-Fi:</b> every iPad loads the games on the gym Wi-Fi. If it will not, pick whose phone is the hotspot tomorrow and join that instead.</li>
+    <li><b>One real sign-up</b> from an iPad. Watch it appear at the bottom of the spreadsheet on the exit laptop. Then delete that row.</li>
+    <li><b>TV sound</b> comes out of the TV, not the laptop.</li>
+    <li><b>Lights:</b> all three floor rolls on, same colour. Curtain lights on. Nothing to trip on.</li>
+    <li><b>Camera game on iPad 2</b> with the clip light on: the face is lit, the thumb joystick works.</li>
+    <li><b>End of a game:</b> two buttons show; Sign up goes to the form and then back to the games by itself.</li>
+    <li><b>Guided Access</b> starts and ends on all three iPads.</li>
+    <li><b>The exit:</b> walk from the stands straight out without touching the table. Then try to reach a box from the visitor side. You should not be able to.</li>
+  </ol>
+
+  <!-- ===================================================== 8 -->
+  <h2 id="p8">8. Overnight, and Sunday morning</h2>
+  <h3>Tonight, last thing</h3>
+  <ul>
+    <li><b>Take home:</b> 3 iPads, both laptops, gift cards, the 2 power banks. Boxes and the TV too, unless the building is locked.</li>
+    <li>Floor rolls off at the remote. Corner power strip <b>unplugged at the wall</b>. Both flaps down.</li>
+    <li>At home: charge iPads, laptops, power banks.</li>
+  </ul>
+  <h3>Sunday, one hour before the doors</h3>
+  <ol>
+    <li>Bring: iPads, laptops, gift cards, power banks, boxes, bottled water, <b>ice</b> for the cold cooler, lanyards and VIP badges.</li>
+    <li>Plug the corner strip back in. Double-click <b>START-TV.bat</b>. Volume check from the rope.</li>
+    <li>iPads onto the tripods, chargers in. On each: Media Booth icon &gt; <b>Host</b> &gt; <b>Clear all scores</b> &gt; then triple-click &gt; <b>Start</b> Guided Access.</li>
+    <li>Exit laptop: SIGN-UPS spreadsheet open, sign-up tab open, charger in.</li>
+    <li>Boxes and both coolers <b>behind</b> the exit table. Prize envelope and clipboard to Elsie.</li>
+    <li>All lights on. Flaps tied back. Rope up. Phone on silent. You stand in the host spot behind iPad 2.</li>
+  </ol>
+  <h3>The hourly gift card</h3>
+  <p>At the top of each hour, on each iPad open the Camera game and read the <b>LAST ROUND</b> line at the bottom of the high-score board. Highest of the three wins. Write the initials on the clipboard, call it out at the exit.</p>
+
+  <!-- ===================================================== 9 -->
+  <h2 id="p9">9. If something goes wrong</h2>
+  <table>
+    <tr><th>You see</th><th>Do this</th></tr>
+    <tr><td>START-TV.bat: blue "Windows protected your PC"</td><td>More info &gt; Run anyway.</td></tr>
+    <tr><td>TV shows the laptop desktop or "no signal"</td><td>Alt+F4, run START-TV.bat again. No signal: reseat the HDMI at both ends, check the TV input.</td></tr>
+    <tr><td>TV has picture, no sound</td><td>Speaker icon on the laptop &gt; pick the TV as output. TV remote: volume up, not muted.</td></tr>
+    <tr><td>Loop plays but silent even with the TV picked</td><td>Click once anywhere on the loop, or Alt+F4 and start it again.</td></tr>
+    <tr><td>iPad shows a blank page</td><td>Wi-Fi. Settings &gt; Wi-Fi, rejoin, open the Media Booth icon again.</td></tr>
+    <tr><td>Camera game shows a drawn room, not the camera</td><td>Settings &gt; Safari &gt; Camera &gt; Allow. Or open the booth in Safari instead of the icon.</td></tr>
+    <tr><td>No two buttons after a game</td><td>Host &gt; After a game &gt; ON. Still missing: open it in Safari and reload once.</td></tr>
+    <tr><td>A visitor got out of the booth</td><td>Guided Access was not started. Triple-click the top button, Start.</td></tr>
+    <tr><td>Sign-up does not show on the spreadsheet</td><td>Give it a minute, then refresh the spreadsheet tab once. Check the laptop is online.</td></tr>
+    <tr><td>An LED roll is dark</td><td>Press a colour button, not just power. Push the 4-pin plug home. Still dark: leave it, the booth works without it.</td></tr>
+  </table>
+
+  <!-- ===================================================== 10 -->
+  <h2 id="p10">10. Every link in one place</h2>
+  <div class="links">
+    <a href="https://tinyurl.com/ncc-preview"><b>tinyurl.com/ncc-preview</b><span>The team page: every plan, PDF, sign and preview below lives here.</span></a>
+    <a href="setup-day-plan.pdf"><b>Setup Day Plan (PDF, 2 pages)</b><span>Who does what today and tonight, the test list, overnight, Sunday morning.</span></a>
+    <a href="booth-build-plan.pdf"><b>Booth Build Plan (PDF, 3 pages)</b><span>The drawing from above, the front wall, lights and power, what to bring, build order.</span></a>
+    <a href="fair-day-playbook.pdf"><b>Fair Day Playbook (PDF)</b><span>Tent and sidewall how-to with diagrams, where every sign goes, roles, hourly prize, fixes, teardown.</span></a>
+    <a href="booth-signs.pdf"><b>The signs (PDF)</b><span>Print-ready, one per page.</span></a>
+    <a href="https://www.canva.com/d/IjzHmq8aOlYcoKx"><b>The signs in Canva</b><span>Edit and export.</span></a>
+    <a href="https://tinyurl.com/ncc-booth"><b>tinyurl.com/ncc-booth</b><span>The games. This is what goes on every iPad.</span></a>
+    <a href="https://tinyurl.com/ncc-booth-signup"><b>tinyurl.com/ncc-booth-signup</b><span>The sign-up form page.</span></a>
+    <a href="https://forms.google.com"><b>forms.google.com</b><span>The sign-up form and its Responses spreadsheet.</span></a>
+    <a href="https://github.com/Matt5306/X32-Haley-tool"><b>github.com/Matt5306/X32-Haley-tool</b><span>Private. Sign in, green Code button, Download ZIP: the TV loop files (START-TV.bat + docs).</span></a>
+  </div>
+</div>
+</body>
+</html>
