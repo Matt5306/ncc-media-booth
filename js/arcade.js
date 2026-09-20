@@ -35,10 +35,16 @@
   'use strict';
 
   var KEY = 'nccMediaArcade';
-  var ROUND_KEY = 'nccMediaArcadeRoundMin';
+  // 20 Sept: ONE $25 card for the whole event, not one an hour. The default round
+  // is a whole day, so the board never flips mid-fair. The key was renamed so an
+  // hourly setting saved on an iPad the night before is ignored. Host can still
+  // pick a short round. To go back to hourly for everyone: DEFAULT_ROUND_MIN = 60.
+  var ROUND_KEY = 'nccMediaArcadeRoundMin2';
   var KEEP = 5;
   var PRIZE_GAME = 'camera';
-  var DEFAULT_ROUND_MIN = 60;
+  var DEFAULT_ROUND_MIN = 1440;
+  var MAX_ROUND_MIN = 1440;
+  var VERSION = '20 Sept b';
 
   // ---------------------------------------------------------------- storage
   // v2 shape: { __v:2, all:{ gameId:[entries] }, rounds:{ gameId:{ roundId:[entries] } } }
@@ -80,14 +86,14 @@
   function roundMinutes() {
     try {
       var n = parseInt(localStorage.getItem(ROUND_KEY), 10);
-      if (n >= 5 && n <= 180) return n;
+      if (n >= 5 && n <= MAX_ROUND_MIN) return n;
     } catch (e) { /* ignore */ }
     return DEFAULT_ROUND_MIN;
   }
 
   function setRoundMinutes(n) {
     n = parseInt(n, 10);
-    if (!(n >= 5 && n <= 180)) return;
+    if (!(n >= 5 && n <= MAX_ROUND_MIN)) return;
     try { localStorage.setItem(ROUND_KEY, String(n)); } catch (e) { /* ignore */ }
     refreshBoards(true);
   }
@@ -188,18 +194,23 @@
     }
     var all = top(gameId, 1)[0];
     var last = lastRoundWinner(gameId);
+    // A round of half a day or more is "the whole event": no clock, no LAST ROUND.
+    var dayLong = ri.len >= 12 * 3600000;
     var prize = (gameId === PRIZE_GAME)
-      ? '<div class="arc-prize">&#127942; PRIZE GAME &middot; TOP SCORE THIS HOUR WINS A $25 GIFT CARD</div>'
+      ? '<div class="arc-prize">&#127942; PRIZE GAME &middot; TOP SCORE ' + (dayLong ? 'TODAY' : 'THIS ROUND') + ' WINS A $25 GIFT CARD</div>'
       : '';
+    var title = dayLong
+      ? 'TODAY&#39;S TOP SCORES'
+      : 'THIS ROUND &middot; ENDS ' + fmtClock(ri.end) +
+        ' &middot; <span class="arc-cd" data-end="' + ri.end + '">' + fmtLeft(ri.end - ri.now) + '</span> LEFT';
+    var foot = (dayLong ? '' :
+               'LAST ROUND: ' + (last ? '<b>' + esc(last.name) + ' ' + last.score + '</b>' : 'nobody yet') + ' &middot; ') +
+               'ALL-TIME: ' + (all ? '<b>' + esc(all.name) + ' ' + all.score + '</b>' : '&mdash;');
     return '<div class="arc-board" data-game="' + esc(gameId) + '" data-round="' + ri.id + '"' +
              ' data-heading="' + esc(heading || '') + '">' +
-             '<div class="arc-title">THIS ROUND &middot; ENDS ' + fmtClock(ri.end) +
-               ' &middot; <span class="arc-cd" data-end="' + ri.end + '">' + fmtLeft(ri.end - ri.now) + '</span> LEFT</div>' +
+             '<div class="arc-title">' + title + '</div>' +
              prize + rows +
-             '<div class="arc-foot">' +
-               'LAST ROUND: ' + (last ? '<b>' + esc(last.name) + ' ' + last.score + '</b>' : 'nobody yet') +
-               ' &middot; ALL-TIME: ' + (all ? '<b>' + esc(all.name) + ' ' + all.score + '</b>' : '&mdash;') +
-             '</div>' +
+             '<div class="arc-foot">' + foot + '</div>' +
            '</div>';
   }
 
@@ -365,7 +376,33 @@
       '.arc-flow-signup{background:var(--gold,#d29922);color:#1a1200}',
       '.arc-flow-hub{background:var(--accent,#58a6ff);color:#04121f}',
       '.arc-flow-cd{margin-top:9px;text-align:center;font-size:13px;color:var(--text-dim,#8b949e);letter-spacing:.5px}',
-      '.arc-flow-cd b{color:var(--gold,#d29922);font-variant-numeric:tabular-nums}'
+      '.arc-flow-cd b{color:var(--gold,#d29922);font-variant-numeric:tabular-nums}',
+      '.arc-flow-capmsg{text-align:center;font-size:15px;letter-spacing:.5px;margin-bottom:9px;color:var(--text,#e6edf3)}',
+      '.arc-flow-capmsg b{color:var(--gold,#d29922)}',
+      '.arc-capped #againBtn{display:none!important}',
+      // the iPad status bar (clock, battery) sits on top of the page in home-screen mode; keep the top bar clear of it
+      // tighter padding so the bar with the big button is the same 57px the pages were built around
+      '.arc-has-exit .topbar{border-top:env(safe-area-inset-top,0px) solid transparent;padding-top:6px;padding-bottom:6px}',
+      // A centred screen that is taller than the iPad cuts its own top off, out of reach of scrolling.
+      // Auto margins centre it the same way but let the top stay reachable.
+      '.arc-has-exit #attract.screen.active,.arc-has-exit #menu.screen.active,.arc-has-exit #results.screen.active{justify-content:flex-start}',
+      '.arc-has-exit #attract.screen.active>:first-child,.arc-has-exit #menu.screen.active>:first-child,.arc-has-exit #results.screen.active>:first-child{margin-top:auto}',
+      '.arc-has-exit #attract.screen.active>:last-child:not(.arc-flow),.arc-has-exit #menu.screen.active>:last-child:not(.arc-flow),.arc-has-exit #results.screen.active>:last-child:not(.arc-flow){margin-bottom:auto}',
+      '#arc-exit{font:900 15px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:1.2px;cursor:pointer;',
+      'min-height:44px;padding:0 18px;border-radius:10px;border:2px solid #f85149;background:rgba(248,81,73,.14);',
+      'color:#fff;white-space:nowrap;touch-action:manipulation}',
+      '#arc-exit:active{background:rgba(248,81,73,.4)}',
+      '#arc-leave{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;',
+      'background:rgba(0,0,0,.74);padding:20px;touch-action:manipulation}',
+      '.arc-leave-box{width:100%;max-width:440px;text-align:center;background:var(--panel,#161b22);',
+      'border:1px solid var(--border,#30363d);border-radius:16px;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,.6)}',
+      '.arc-leave-box h3{font-size:26px;margin:0 0 6px;color:var(--text,#e6edf3)}',
+      '.arc-leave-box p{font-size:15px;margin:0 0 20px;color:var(--text-dim,#8b949e)}',
+      '.arc-leave-btns{display:flex;gap:12px}',
+      '.arc-leave-btns button{flex:1;min-height:60px;border-radius:12px;border:none;cursor:pointer;',
+      'font:900 16px/1.1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:1px}',
+      '.arc-leave-stay{background:var(--accent,#58a6ff);color:#04121f}',
+      '.arc-leave-go{background:#f85149;color:#fff}'
     ].join('');
     document.head.appendChild(css);
   }
@@ -483,6 +520,49 @@
     } catch (e) { /* ignore */ }
     return FLOW.resultsSec;
   }
+  // ---- game maximum (20 Sept). After CAP games in a row the results bar offers
+  // only SIGN UP and then goes to the sign-up page by itself. The iPad cannot
+  // tell people apart, so "in a row" means: no gap longer than CAP_GAP_MS since
+  // the last game ended. The count also clears when someone signs up or when the
+  // results screen times out back to the hub.
+  // ROLLBACK: Host panel > Game maximum > OFF (localStorage nccMediaGameCap=off),
+  // or CAP_DEFAULT = 0 here for everyone. Any error in here falls back to the
+  // normal two buttons.
+  var CAP_KEY = 'nccMediaGameCap', CAP_STATE_KEY = 'nccMediaCapState';
+  var CAP_DEFAULT = 2, CAP_GAP_MS = 180000, CAP_SEC = 20;
+  function gameCap() {
+    try {
+      var v = localStorage.getItem(CAP_KEY);
+      if (v === 'off') return 0;
+      if (v === '2' || v === '3') return Number(v);
+    } catch (e) { /* ignore */ }
+    return CAP_DEFAULT;
+  }
+  function setGameCap(v) {
+    v = String(v);
+    if (v !== 'off' && v !== '2' && v !== '3') return;
+    try { localStorage.setItem(CAP_KEY, v); localStorage.removeItem(CAP_STATE_KEY); } catch (e) { /* ignore */ }
+  }
+  function capCount() {
+    try {
+      var s = JSON.parse(localStorage.getItem(CAP_STATE_KEY) || 'null');
+      if (s && s.n > 0 && (Date.now() - s.t) < CAP_GAP_MS) return s.n;
+    } catch (e) { /* ignore */ }
+    return 0;
+  }
+  function capReset() {
+    try { localStorage.removeItem(CAP_STATE_KEY); } catch (e) { /* ignore */ }
+  }
+  var capLastBump = 0, capLastN = 0;
+  function capBump() {
+    // a game that re-draws its results screen must not count twice
+    if (Date.now() - capLastBump < 8000) return capLastN;
+    var n = capCount() + 1;
+    try { localStorage.setItem(CAP_STATE_KEY, JSON.stringify({ n: n, t: Date.now() })); } catch (e) { /* ignore */ }
+    capLastBump = Date.now(); capLastN = n;
+    return n;
+  }
+
   var flowTimer = null, flowLeft = 0;
   var FLOW_EVENTS = ['pointerdown', 'keydown', 'touchstart'];
   function flowResults(root, gameId) {
@@ -490,22 +570,35 @@
     var old = root.querySelector('.arc-flow');
     if (old) old.parentNode.removeChild(old);
     clearInterval(flowTimer);
+    var cap = 0, played = 0, capped = false;
+    try { cap = gameCap(); if (cap > 0) { played = capBump(); capped = played >= cap; } } catch (e) { capped = false; }
+    var secs = capped ? Math.min(CAP_SEC, flowSeconds()) : flowSeconds();
+    var dest = capped ? FLOW.signup : FLOW.hub;
     var bar = document.createElement('div');
     bar.className = 'arc-flow';
-    bar.innerHTML =
-      '<div class="arc-flow-btns">' +
-        '<a class="arc-flow-btn arc-flow-signup" href="' + FLOW.signup + '">SIGN UP<small>30 seconds. Gift box at the exit.</small></a>' +
-        '<a class="arc-flow-btn arc-flow-hub" href="' + FLOW.hub + '">PLAY ANOTHER GAME<small>Sound, Camera, ProPresenter, Lower Thirds</small></a>' +
-      '</div>' +
-      '<div class="arc-flow-cd">Back to the games in <b>' + flowSeconds() + '</b> s. Tap anything to stay.</div>';
+    bar.innerHTML = capped
+      ? '<div class="arc-flow-capmsg">That was game ' + played + ' of ' + cap + '. <b>Next stop: sign up and grab your gift box.</b></div>' +
+        '<div class="arc-flow-btns">' +
+          '<a class="arc-flow-btn arc-flow-signup" href="' + FLOW.signup + '">SIGN UP NOW<small>30 seconds. Gift box at the exit table.</small></a>' +
+        '</div>' +
+        '<div class="arc-flow-cd">Going to the sign-up in <b>' + secs + '</b> s.</div>'
+      : '<div class="arc-flow-btns">' +
+          '<a class="arc-flow-btn arc-flow-signup" href="' + FLOW.signup + '">SIGN UP<small>30 seconds. Gift box at the exit.</small></a>' +
+          '<a class="arc-flow-btn arc-flow-hub" href="' + FLOW.hub + '">PLAY ANOTHER GAME<small>Sound, Camera, ProPresenter, Lower Thirds</small></a>' +
+        '</div>' +
+        '<div class="arc-flow-cd">Back to the games in <b>' + secs + '</b> s. Tap anything to stay.</div>';
     root.appendChild(bar);
-    flowLeft = flowSeconds();
+    if (capped) root.classList.add('arc-capped');
+    var su = bar.querySelector('.arc-flow-signup');
+    if (su) su.addEventListener('click', capReset);   // signing up ends this visitor's run
+    flowLeft = secs;
     var b = bar.querySelector('.arc-flow-cd b');
-    function bump() { flowLeft = flowSeconds(); if (b) b.textContent = flowLeft; }
+    function bump() { flowLeft = secs; if (b) b.textContent = flowLeft; }
     FLOW_EVENTS.forEach(function (e) { document.addEventListener(e, bump, true); });
     function stop() {
       clearInterval(flowTimer);
       FLOW_EVENTS.forEach(function (e) { document.removeEventListener(e, bump, true); });
+      root.classList.remove('arc-capped');
     }
     flowTimer = setInterval(function () {
       if (!root.classList.contains('active')) {   // Run It Again, or the game moved on
@@ -515,9 +608,82 @@
       }
       flowLeft--;
       if (b) b.textContent = Math.max(0, flowLeft);
-      if (flowLeft <= 0) { stop(); location.href = FLOW.hub; }
+      if (flowLeft <= 0) { stop(); capReset(); location.href = dest; }   // timed out: whoever was here has gone
     }, 1000);
   }
+
+  // ---- EXIT GAME (20 Sept). The small "Booth" link in the top bar was easy to
+  // miss and, from a home-screen icon, partly under the iPad's clock strip. This
+  // swaps the top-bar links for one big button. Mid-round it asks first.
+  // ROLLBACK: Host panel > Exit button > OFF (localStorage nccMediaExitBtn=off).
+  var EXIT_KEY = 'nccMediaExitBtn';
+  function exitEnabled() {
+    try { return localStorage.getItem(EXIT_KEY) !== 'off'; } catch (e) { return true; }
+  }
+  function setExitEnabled(on) {
+    try { localStorage.setItem(EXIT_KEY, on ? 'on' : 'off'); } catch (e) { /* ignore */ }
+  }
+  function askLeave(onLeave) {
+    if (document.getElementById('arc-leave')) return;
+    var ov = document.createElement('div');
+    ov.id = 'arc-leave';
+    ov.innerHTML =
+      '<div class="arc-leave-box">' +
+        '<h3>Leave this game?</h3><p>This round will not count.</p>' +
+        '<div class="arc-leave-btns">' +
+          '<button type="button" class="arc-leave-stay">KEEP PLAYING</button>' +
+          '<button type="button" class="arc-leave-go">LEAVE</button>' +
+        '</div>' +
+      '</div>';
+    var t = null;
+    function close() { clearTimeout(t); if (ov.parentNode) ov.parentNode.removeChild(ov); }
+    ov.querySelector('.arc-leave-stay').addEventListener('click', function (e) { e.stopPropagation(); close(); });
+    ov.querySelector('.arc-leave-go').addEventListener('click', function (e) { e.stopPropagation(); close(); onLeave(); });
+    ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+    t = setTimeout(close, 8000);   // nobody answered: keep playing
+    document.body.appendChild(ov);
+  }
+  function exitButton() {
+    try {
+      if (!exitEnabled() || document.getElementById('arc-exit')) return;
+      var game = document.getElementById('game'), tb = document.querySelector('.topbar');
+      if (!game || !document.getElementById('results') || !tb) return;
+      injectCSS();   // the button must be styled before the top bar is measured
+      var b = document.createElement('button');
+      b.id = 'arc-exit'; b.type = 'button';
+      b.innerHTML = '&#10005; EXIT GAME';
+      var nav = tb.querySelector('.nav');
+      if (nav) {
+        var kids = nav.children;
+        for (var i = 0; i < kids.length; i++) kids[i].style.display = 'none';
+        nav.appendChild(b);
+      } else { tb.appendChild(b); }
+      document.documentElement.classList.add('arc-has-exit');
+      function leave() { location.href = FLOW.hub; }
+      b.addEventListener('click', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        if (game.classList.contains('active')) askLeave(leave); else leave();
+      });
+      // The pages size their screens as "100dvh minus a 57px top bar". The bar is
+      // taller now (bigger button, plus the iPad status-bar strip), so measure it.
+      var fit = document.createElement('style');
+      fit.id = 'arc-fit';
+      document.head.appendChild(fit);
+      function fitScreens() {
+        var h = Math.ceil(tb.getBoundingClientRect().height);
+        if (h > 0) fit.textContent = '.screen{height:calc(100vh - ' + h + 'px)!important;height:calc(100dvh - ' + h + 'px)!important}';
+      }
+      fitScreens();
+      window.addEventListener('resize', fitScreens);
+      window.addEventListener('orientationchange', function () { setTimeout(fitScreens, 300); });
+      window.addEventListener('load', fitScreens);
+      setTimeout(fitScreens, 600);
+    } catch (e) { /* the old top-bar links stay; nothing else depends on this */ }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', exitButton);
+  }
+  if (document.querySelector && document.querySelector('.topbar')) exitButton();
   // Nobody touching a game for idleSec -> hub. Never in the middle of a round.
   var flowIdleT = null;
   function flowIdle() {
@@ -544,6 +710,8 @@
   global.Arcade = {
     fullscreenButton: fullscreenButton,
     flowResults: flowResults, flowIdle: flowIdle, flowEnabled: flowEnabled, setFlowEnabled: setFlowEnabled, FLOW: FLOW,
+    gameCap: gameCap, setGameCap: setGameCap, capCount: capCount, capReset: capReset,
+    exitEnabled: exitEnabled, setExitEnabled: setExitEnabled, VERSION: VERSION,
     top: top, topRound: topRound, qualifies: qualifies, submit: submit,
     boardHTML: boardHTML, howTo: howTo,
     initialsHTML: initialsHTML, wireInitials: wireInitials,

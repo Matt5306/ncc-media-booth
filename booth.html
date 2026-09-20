@@ -164,6 +164,21 @@
     background: transparent; border: 1px solid var(--red); color: var(--red); font-family: inherit;
     padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
   }
+  .host { max-height: calc(100vh - 100px); max-height: calc(100dvh - 100px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .host-opts button { min-height: 36px; }
+  .pin { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.78); padding: 20px; }
+  .pin[hidden] { display: none; }
+  .pin-box { width: 100%; max-width: 320px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 22px 22px 20px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .pin-title { font-size: 12px; letter-spacing: 2.5px; font-weight: 800; color: var(--text-dim); margin-bottom: 14px; }
+  .pin-dots { display: flex; gap: 14px; justify-content: center; margin-bottom: 18px; }
+  .pin-dots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--text-dim); display: block; }
+  .pin-dots i.on { background: var(--gold); border-color: var(--gold); }
+  .pin-dots.bad i { border-color: var(--red); background: transparent; animation: pinShake .35s; }
+  @keyframes pinShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .pin-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pin-keys button { min-height: 58px; font: 800 22px/1 inherit; font-family: inherit; color: var(--text); background: var(--panel2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; touch-action: manipulation; }
+  .pin-keys button:active { background: var(--gold); color: #1a1200; }
+  .pin-keys .pin-alt { font-size: 13px; letter-spacing: 1px; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -203,10 +218,10 @@
   <!-- Host panel: prize-round length and a board reset. Small on purpose;
        visitors should not find it interesting. -->
   <div class="host" id="hostPanel" hidden>
-    <div class="host-title">HOST SETTINGS</div>
-    <div class="host-row">Prize round length
+    <div class="host-title">HOST SETTINGS <span id="hostVer" style="opacity:.6;font-weight:600;letter-spacing:1px"></span></div>
+    <div class="host-row">Prize round
       <span class="host-opts" id="roundOpts">
-        <button data-min="15">15</button><button data-min="20">20</button>
+        <button data-min="1440">Whole event</button>
         <button data-min="30">30</button><button data-min="60">60</button>
       </span> min
     </div>
@@ -216,13 +231,37 @@
         <button data-flow="on">Auto-return ON</button><button data-flow="off">OFF</button>
       </span>
     </div>
-    <div class="host-row host-note">ON: the results screen offers <b>Sign up</b> / <b>Play another game</b> and comes back to this page by itself after 40 s; a game nobody touches for 2 min comes back here too. OFF: games stay on their results screen, the old way. Per device.</div>
-    <div class="host-row host-note">Rounds cut on the clock, so every station is on the same round. Top <b>Camera</b> score each hour wins the <b>$25 gift card</b>. Read the LAST ROUND line on any board. The gift box is for everyone who fills out the sign-up, not a prize.</div>
+    <div class="host-row">Game maximum
+      <span class="host-opts" id="capOpts">
+        <button data-cap="off">OFF</button><button data-cap="2">2 games</button><button data-cap="3">3 games</button>
+      </span>
+    </div>
+    <div class="host-row">Exit button in games
+      <span class="host-opts" id="exitOpts">
+        <button data-exit="on">ON</button><button data-exit="off">OFF</button>
+      </span>
+    </div>
+    <div class="host-row host-note"><b>After a game</b> ON: the results screen offers <b>Sign up</b> / <b>Play another game</b> and comes back to this page by itself after 40 s; a game nobody touches for 2 min comes back here too. OFF: games stay on their results screen, the old way. <b>Game maximum</b>: after that many games in a row the results screen offers only Sign up and goes there by itself; the count starts over after a sign-up, a time-out, or 3 quiet minutes. Needs After a game ON. <b>If anything acts up, set Game maximum to OFF.</b> All per device.</div>
+    <div class="host-row host-note"><b>One $25 gift card for the whole event:</b> the top <b>Camera</b> score across the three iPads when the fair ends. Clear the scores before the doors open. The gift box is for everyone who fills out the sign-up, not a prize.</div>
     <div class="host-row"><button class="host-danger" id="clearBoards">Clear all scores on this device</button></div>
+  </div>
+
+  <!-- Host passcode keypad. Keeps visitors out of the panel above; not real security. -->
+  <div class="pin" id="pinPad" hidden>
+    <div class="pin-box">
+      <div class="pin-title">HOST PASSCODE</div>
+      <div class="pin-dots" id="pinDots"><i></i><i></i><i></i><i></i></div>
+      <div class="pin-keys" id="pinKeys">
+        <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+        <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+        <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+        <button data-k="x" class="pin-alt">Cancel</button><button data-k="0">0</button><button data-k="c" class="pin-alt">Clear</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<script src="js/arcade.js?v=20260912f"></script>
+<script src="js/arcade.js?v=20260920a"></script>
 <script>
 (function () {
   'use strict';
@@ -309,7 +348,10 @@
   var idle = null;
   function armIdle() {
     clearTimeout(idle);
-    idle = setTimeout(function () { show('attract'); }, IDLE_MS);
+    idle = setTimeout(function () {
+      show('attract');
+      try { panel.hidden = true; closePin(); } catch (e) { /* ignore */ }   // never leave Host open for the next visitor
+    }, IDLE_MS);
   }
 
   $('attract').addEventListener('click', function () { show('picker'); armIdle(); });
@@ -341,6 +383,7 @@
     var ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
     $('roundNow').textContent = 'Current round ends at ' + h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap +
       ' (' + Math.max(0, Math.ceil((r.end - Date.now()) / 60000)) + ' min left)';
+    if (r.len >= 12 * 3600000) $('roundNow').textContent = 'One round for the whole event. The board does not flip during the fair.';
     if (A.flowEnabled) {
       var on = A.flowEnabled();
       var fb = $('flowOpts').querySelectorAll('button');
@@ -348,17 +391,75 @@
         fb[j].classList.toggle('on', (fb[j].getAttribute('data-flow') === 'on') === on);
       }
     }
+    if (A.gameCap) {
+      var cap = A.gameCap(), capV = cap ? String(cap) : 'off';
+      var cb = $('capOpts').querySelectorAll('button');
+      for (var k = 0; k < cb.length; k++) cb[k].classList.toggle('on', cb[k].getAttribute('data-cap') === capV);
+    }
+    if (A.exitEnabled) {
+      var ex = A.exitEnabled();
+      var eb = $('exitOpts').querySelectorAll('button');
+      for (var q = 0; q < eb.length; q++) eb[q].classList.toggle('on', (eb[q].getAttribute('data-exit') === 'on') === ex);
+    }
+    $('hostVer').textContent = A.VERSION ? '· version ' + A.VERSION : '';
   }
+  $('capOpts').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || !A || !A.setGameCap) return;
+    A.setGameCap(b.getAttribute('data-cap'));
+    paintHost();
+  });
+  $('exitOpts').addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || !A || !A.setExitEnabled) return;
+    A.setExitEnabled(b.getAttribute('data-exit') === 'on');
+    paintHost();
+  });
   $('flowOpts').addEventListener('click', function (e) {
     var b = e.target.closest('button');
     if (!b || !A || !A.setFlowEnabled) return;
     A.setFlowEnabled(b.getAttribute('data-flow') === 'on');
     paintHost();
   });
+  // ---- host passcode. Keeps visitors out of the panel; the code is in this
+  // public file, so it is not real security. If the keypad itself breaks, the
+  // panel opens anyway: a host must never be locked out on the day.
+  var HOST_PIN = '3472';
+  var pinPad = $('pinPad'), pinBuf = '';
+  function openPanel() { panel.hidden = false; paintHost(); }
+  function paintPin(bad) {
+    var dots = $('pinDots').querySelectorAll('i');
+    for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('on', i < pinBuf.length);
+    $('pinDots').classList.toggle('bad', !!bad);
+  }
+  function closePin() { pinBuf = ''; pinPad.hidden = true; paintPin(false); }
+  function pinKey(k) {
+    if (k === 'x') { closePin(); return; }
+    if (k === 'c') { pinBuf = ''; paintPin(false); return; }
+    if (!/^[0-9]$/.test(k) || pinBuf.length >= 4) return;
+    pinBuf += k; paintPin(false);
+    if (pinBuf.length === 4) {
+      if (pinBuf === HOST_PIN) { closePin(); openPanel(); }
+      else { pinBuf = ''; paintPin(true); setTimeout(function () { paintPin(false); }, 450); }
+    }
+  }
+  $('pinKeys').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var b = e.target.closest('button');
+    if (b) pinKey(b.getAttribute('data-k'));
+  });
+  pinPad.addEventListener('click', function (e) { e.stopPropagation(); if (e.target === pinPad) closePin(); });
+  document.addEventListener('keydown', function (e) {
+    if (pinPad.hidden) return;
+    if (e.key === 'Escape') closePin();
+    else if (e.key === 'Backspace') { pinBuf = pinBuf.slice(0, -1); paintPin(false); }
+    else pinKey(e.key);
+  });
   $('hostBtn').addEventListener('click', function (e) {
     e.stopPropagation();
-    panel.hidden = !panel.hidden;
-    if (!panel.hidden) paintHost();
+    if (!panel.hidden) { panel.hidden = true; return; }
+    try { pinBuf = ''; paintPin(false); pinPad.hidden = false; }
+    catch (err) { openPanel(); }
   });
   $('roundOpts').addEventListener('click', function (e) {
     var b = e.target.closest('button');

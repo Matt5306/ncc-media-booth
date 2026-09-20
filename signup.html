@@ -327,6 +327,31 @@
   function goBack() { location.href = BACK; }
   if (BACK) { $('backLink').href = BACK; $('backLink').hidden = false; }
 
+  // ---- 20 Sept: the game maximum sends people here by themselves. If nobody
+  // touches the form for IDLE_BACK_SEC, go back to the games so an abandoned
+  // form never blocks a station. Only when opened from a game (?back=), and only
+  // while the form is showing; any tap or keystroke starts the clock again.
+  // ?idlesec=N shortens it for tests. It never touches how the form submits.
+  if (BACK) {
+    (function () {
+      var IDLE_BACK_SEC = 90, idleT = null;
+      try {
+        var n = parseInt(new URLSearchParams(location.search).get('idlesec'), 10);
+        if (n >= 3 && n <= 600) IDLE_BACK_SEC = n;
+      } catch (e) { /* ignore */ }
+      function armIdleBack() {
+        clearTimeout(idleT);
+        idleT = setTimeout(function () {
+          if ($('form').classList.contains('active')) goBack(); else armIdleBack();
+        }, IDLE_BACK_SEC * 1000);
+      }
+      ['pointerdown', 'keydown', 'input', 'touchstart'].forEach(function (e) {
+        document.addEventListener(e, armIdleBack, true);
+      });
+      armIdleBack();
+    })();
+  }
+
   // ---- thanks, then reset for the next person (or back to the games)
   var resetTimer = null;
   function thanks(first) {
