@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reading the fair scores off the booth iPads</title>
+<style>
+  :root { --ink:#15151a; --dim:#5b5b66; --line:#dcdce4; --gold:#a87f12; --green:#1f8a3c; --red:#c8452d; --blue:#2f6fde; --soft:#f5f5f8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: var(--ink); font: 17px/1.55 -apple-system, "Segoe UI", Arial, sans-serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 22px 18px 60px; }
+  .kicker { font-size: 12px; letter-spacing: 2.5px; color: var(--gold); font-weight: 800; text-transform: uppercase; }
+  h1 { font-size: 28px; line-height: 1.15; margin: 4px 0 8px; } h1 em { font-style: normal; color: var(--gold); }
+  h2 { font-size: 20px; margin: 30px 0 6px; padding-top: 12px; border-top: 3px solid var(--ink); }
+  h2 small { display: block; font-size: 14px; font-weight: 400; color: var(--dim); }
+  p { margin: 8px 0; } .dim { color: var(--dim); }
+  ol { padding-left: 26px; margin: 8px 0; } li { margin: 10px 0; }
+  ul { padding-left: 22px; margin: 6px 0; } ul li { margin: 5px 0; }
+  .see { display: block; font-size: 14px; color: var(--dim); margin-top: 2px; }
+  .see b { color: var(--ink); }
+  .box { border: 1px solid var(--line); border-left: 6px solid var(--gold); border-radius: 8px; padding: 10px 14px; margin: 12px 0; background: #fffdf6; }
+  .box.red { border-left-color: var(--red); background: #fff8f6; }
+  .box.green { border-left-color: var(--green); background: #f6fcf7; }
+  .key { display: inline-block; font-family: Consolas, Menlo, monospace; font-weight: 800; letter-spacing: 3px; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 2px 10px; }
+  .btn { display: inline-block; border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; font-size: .92em; background: var(--soft); white-space: nowrap; }
+  code { font-family: Consolas, Menlo, monospace; background: var(--soft); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font-size: .92em; }
+  pre { background: #0d1117; color: #e6edf3; border-radius: 8px; padding: 12px 14px; font: 13px/1.5 Consolas, Menlo, monospace; overflow-x: auto; }
+  @media print { body { font-size: 11pt; } .box, li { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">Media team booth &middot; after the fair</div>
+  <h1>Reading the fair scores <em>off the three booth iPads.</em></h1>
+  <p>The scores are stored inside each iPad and nowhere else, so somebody has to open each one and send Matt what it says. About <b>5 minutes per iPad</b>. You need the three booth iPads and Wi-Fi. Nothing you do here can break the games.</p>
+
+  <div class="box">
+    <b>Three numbers you will need</b>
+    <ul>
+      <li><b>Host passcode:</b> <span class="key">3472</span> (this is typed on a keypad inside the app).</li>
+      <li><b>Guided Access passcode:</b> a 4-digit number written on tape on the back of each iPad. Only needed if the iPad is locked into the app (step 3).</li>
+      <li><b>iPad unlock code:</b> only if the iPad asks for one when you wake it. Ask Matt.</li>
+    </ul>
+  </div>
+
+  <h2>Before you start <small>One minute.</small></h2>
+  <ol>
+    <li>Make sure the iPad is on Wi-Fi: open <b>Settings</b> (grey gear) &gt; <b>Wi-Fi</b>. A network with a tick next to it means yes. If there is none, join one, or use a phone hotspot. <span class="see">Why: the iPad picks up a small update from the website that adds the scores button. Without Wi-Fi the button is not there.</span></li>
+    <li>Decide how you will send the result: the iPad's <b>Mail</b> app if it is set up, or a <b>photo of the screen</b> with your phone. Either is fine.</li>
+  </ol>
+
+  <h2>Part A. Get to the games list <small>Do this on each iPad.</small></h2>
+  <ol>
+    <li><b>Wake it.</b> Press the top button once, then swipe up from the bottom. If it asks for a code, that is the iPad unlock code.</li>
+    <li><b>Look at what is on screen.</b>
+      <ul>
+        <li>A dark screen saying <b>"Can you run a Sunday production?"</b>, or a page called <b>"Pick your station"</b> with four coloured tiles: you are in the booth app. Go to step 3.</li>
+        <li>One of the games (Sound, Camera, ProPresenter or Lower Thirds): also the booth app. Go to step 3.</li>
+        <li>The normal iPad home screen with icons: skip to step 4.</li>
+      </ul>
+    </li>
+    <li><b>Turn off the lock</b> the booth used, called Guided Access. Press the top button <b>three times quickly</b> (click-click-click). A passcode screen appears; type the 4-digit number from the tape on the back, then tap <b>End</b> at the top left.
+      <span class="see">If triple-clicking does nothing, the lock is not on. Carry on. On an older iPad with a round Home button, triple-click <b>that</b> button instead.</span></li>
+    <li><b>Close the app completely and open it again</b>, so it fetches the update. Swipe up from the very bottom edge of the screen and stop in the middle; you see the open apps as cards. Swipe the <b>Media Booth</b> card up and off the top. Then, on the home screen, tap the dove icon called <b>Media Booth</b>. Wait for the dark "Can you run a Sunday production?" screen.
+      <span class="see">No dove icon? Open <b>Safari</b>, tap the address bar, type <code>tinyurl.com/ncc-booth</code> and tap Go.</span></li>
+  </ol>
+
+  <h2>Part B. Open the Host panel</h2>
+  <ol start="5">
+    <li>Tap anywhere on the dark screen. You get <b>"Pick your station"</b> with four coloured tiles.</li>
+    <li>Look at the <b>bar along the bottom</b>. It says "Not sure? Try Sound..." and, at its <b>far right</b>, there is a small faint grey button that says <span class="btn">Host</span>. Tap it. <span class="see">It is small and faint on purpose so visitors ignore it. It is there.</span></li>
+    <li>A keypad titled <b>HOST PASSCODE</b> appears. Tap <b>3</b>, <b>4</b>, <b>7</b>, <b>2</b>. The Host panel opens on the right.
+      <span class="see">Wrong number: the dots shake; just type it again. Want out: tap <span class="btn">Cancel</span>.</span></li>
+    <li><b>Check the top line of the panel.</b> It must say <b>HOST SETTINGS &middot; version 22 Sept a</b>.
+      <ul>
+        <li>If it says <b>20 Sept b</b>, or shows no version, or the panel opened <b>without asking for a passcode</b>: this iPad has not picked up the update yet. Check Wi-Fi, then do step 4 again. It can take up to 10 minutes after the iPad gets online.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>Part C. Show the scores and send them</h2>
+  <ol start="9">
+    <li>The panel is taller than the screen. <b>Drag upward inside the panel</b> to scroll to the bottom. You will find a line that says <b>"This iPad is called"</b> with a small box containing the word <i>iPad</i>.</li>
+    <li>Tap in that box, delete <i>iPad</i>, and type a name for this iPad so Matt can tell the three apart. <b>iPad 1</b>, <b>iPad 2</b>, <b>iPad 3</b> is fine, or whatever is written on the case.</li>
+    <li>Tap <span class="btn">Show scores saved on this iPad</span>. A block of text appears underneath. It looks like this:
+<pre>BOOTH SCORES, iPad 1, read 9/22 10:14 AM
+
+CAMERA (prize game), all-time top 5
+  1. JMR  840  9/20 2:05 PM
+  2. ABC  610  9/20 2:15 PM
+  ...</pre>
+      <span class="see">The <b>CAMERA</b> section is the one that matters: line 1 is this iPad's best score. The date next to it shows it was from fair day.</span></li>
+    <li><b>Send the whole block to Matt</b>, one of two ways:
+      <ul>
+        <li><b>Email:</b> tap <span class="btn">Email these</span>. The Mail app opens with the list already filled in. Type Matt's address in <b>To</b> and tap the send arrow. If Mail complains that there is no account, or nothing opens, use the photo way.</li>
+        <li><b>Photo:</b> take a screenshot (press the <b>top button and the volume-up button at the same time</b>; on an iPad with a round Home button, press the top button and the Home button together), then send that picture to Matt. Or photograph the screen with your phone. Make sure the CAMERA lines are readable; take two shots if the list is long.</li>
+      </ul>
+    </li>
+    <li>Tap the small <span class="btn">Host</span> button again to close the panel. Done with this iPad.</li>
+    <li>Repeat Part A, B and C on the other two iPads, giving each a different name in step 10.</li>
+  </ol>
+
+  <div class="box red"><b>Do not tap the red button</b> that says <b>"Clear all scores on this device"</b>, just below the scores. It erases the fair results on that iPad and cannot be undone.</div>
+
+  <h2>If something is not as described</h2>
+  <ul>
+    <li><b>The panel disappeared while I was reading.</b> It closes itself after about a minute with no touching. Tap the screen, tap Host, type 3472, scroll down, tap the scores button again. Nothing is lost.</li>
+    <li><b>Under CAMERA it says "nobody yet".</b> Either the scores on this iPad were saved in Safari rather than in the icon app, or they were cleared. First try the Safari route: open <b>Safari</b>, go to <code>tinyurl.com/ncc-booth</code>, and do Part B and C again there. If Safari also says "nobody yet", tell Matt which iPad it was.</li>
+    <li><b>The scores button is not there / the panel opens with no passcode.</b> The update has not arrived. Wi-Fi on, close the app fully (step 4), open it again, give it a few minutes.</li>
+    <li><b>The keypad will not take my taps.</b> Tap the digits one at a time and watch the four dots fill in. If a dot does not fill, tap that digit again.</li>
+    <li><b>The screen is stuck inside a game and I cannot get out.</b> Guided Access is on: step 3. If you do not have the tape number, tell Matt; he knows it.</li>
+  </ul>
+
+  <div class="box green"><b>What Matt needs at the end:</b> three lists (or three photos), each labelled with the iPad's name. The highest CAMERA score across the three wins the gift card.</div>
+</div>
+</body>
+</html>
