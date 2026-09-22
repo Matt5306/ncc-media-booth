@@ -44,7 +44,7 @@
   var PRIZE_GAME = 'camera';
   var DEFAULT_ROUND_MIN = 1440;
   var MAX_ROUND_MIN = 1440;
-  var VERSION = '20 Sept b';
+  var VERSION = '22 Sept a';
 
   // ---------------------------------------------------------------- storage
   // v2 shape: { __v:2, all:{ gameId:[entries] }, rounds:{ gameId:{ roundId:[entries] } } }
@@ -707,7 +707,34 @@
     document.addEventListener('DOMContentLoaded', flowAuto);
   } else { flowAuto(); }
 
+  // ---------------------------------------------------------------- export
+  // Scores never leave the iPad by themselves. This turns everything saved on
+  // this device into plain text the host can read, copy or email from the Host
+  // panel. Every entry carries the time it was saved, so fair-day scores are
+  // easy to tell from test rounds.
+  var GAMES = ['camera', 'sound', 'propresenter', 'lowerthirds'];
+  function fmtWhen(t) {
+    if (!t) return '';
+    var d = new Date(t), h = d.getHours(), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + h + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() + ' ' + ap;
+  }
+  function exportText(label) {
+    var d = readAll(), lines = [];
+    lines.push('BOOTH SCORES, ' + (label || 'this iPad') + ', read ' + fmtWhen(Date.now()));
+    GAMES.forEach(function (g) {
+      var all = sortTop(d.all[g], KEEP);
+      lines.push('');
+      lines.push(g.toUpperCase() + (g === PRIZE_GAME ? ' (prize game)' : '') + ', all-time top ' + KEEP);
+      if (!all.length) lines.push('  nobody yet');
+      all.forEach(function (e, i) {
+        lines.push('  ' + (i + 1) + '. ' + e.name + '  ' + e.score + '  ' + fmtWhen(e.t));
+      });
+    });
+    return lines.join('\n');
+  }
+
   global.Arcade = {
+    exportText: exportText,
     fullscreenButton: fullscreenButton,
     flowResults: flowResults, flowIdle: flowIdle, flowEnabled: flowEnabled, setFlowEnabled: setFlowEnabled, FLOW: FLOW,
     gameCap: gameCap, setGameCap: setGameCap, capCount: capCount, capReset: capReset,

@@ -243,6 +243,9 @@
     </div>
     <div class="host-row host-note"><b>After a game</b> ON: the results screen offers <b>Sign up</b> / <b>Play another game</b> and comes back to this page by itself after 40 s; a game nobody touches for 2 min comes back here too. OFF: games stay on their results screen, the old way. <b>Game maximum</b>: after that many games in a row the results screen offers only Sign up and goes there by itself; the count starts over after a sign-up, a time-out, or 3 quiet minutes. Needs After a game ON. <b>If anything acts up, set Game maximum to OFF.</b> All per device.</div>
     <div class="host-row host-note"><b>One $25 gift card for the whole event:</b> the top <b>Camera</b> score across the three iPads when the fair ends. Clear the scores before the doors open. The gift box is for everyone who fills out the sign-up, not a prize.</div>
+    <div class="host-row">This iPad is called <input id="scoresLabel" value="iPad" maxlength="20" style="width:90px;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font:inherit">
+      <button class="host-danger" id="scoresBtn" style="border-color:var(--accent);color:var(--accent)">Show scores saved on this iPad</button></div>
+    <div class="host-row" id="scoresOut" hidden></div>
     <div class="host-row"><button class="host-danger" id="clearBoards">Clear all scores on this device</button></div>
   </div>
 
@@ -261,7 +264,7 @@
   </div>
 </div>
 
-<script src="js/arcade.js?v=20260920a"></script>
+<script src="js/arcade.js?v=20260922a"></script>
 <script>
 (function () {
   'use strict';
@@ -467,6 +470,37 @@
     A.setRoundMinutes(b.getAttribute('data-min'));
     paintHost();
   });
+  // ---- scores off the device: plain text on screen, plus Email and Copy.
+  // Nothing here touches the scores themselves.
+  function escText(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  $('scoresBtn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var box = $('scoresOut'); box.hidden = false;
+    if (!A || !A.exportText) { box.textContent = 'This iPad has not picked up the update yet. Close the app and open it again.'; return; }
+    var label = ($('scoresLabel').value || 'iPad').trim();
+    var text = A.exportText(label);
+    var subject = 'Booth scores: ' + label;
+    box.innerHTML =
+      '<pre id="scoresText" style="white-space:pre-wrap;font:12px/1.55 Menlo,Consolas,monospace;margin:0 0 8px;color:var(--text);user-select:text;-webkit-user-select:text">' + escText(text) + '</pre>' +
+      '<a class="host-danger" id="scoresMail" style="border-color:var(--gold);color:var(--gold);text-decoration:none;display:inline-block" href="mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text) + '">Email these</a> ' +
+      '<button class="host-danger" id="scoresCopy" style="border-color:var(--text-dim);color:var(--text-dim)">Copy</button>' +
+      '<div class="host-note" style="margin-top:6px">Or just photograph this. The top CAMERA line is this iPad’s best; compare the three iPads.</div>';
+    $('scoresCopy').addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var done = function (ok) { $('scoresCopy').textContent = ok ? 'Copied' : 'Select the text and copy it'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+      } else {
+        try {
+          var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', '');
+          ta.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.appendChild(ta);
+          ta.select(); ta.setSelectionRange(0, text.length); done(document.execCommand('copy')); document.body.removeChild(ta);
+        } catch (err) { done(false); }
+      }
+    });
+  });
+  $('scoresLabel').addEventListener('click', function (e) { e.stopPropagation(); });
+  $('scoresLabel').addEventListener('keydown', function (e) { e.stopPropagation(); });
   $('clearBoards').addEventListener('click', function () {
     if (!A || !A.clearBoards) return;
     if (confirm('Clear every high score on this device? This cannot be undone.')) {
